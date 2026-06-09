@@ -41,7 +41,7 @@ public interface ApiService {
     Call<ApiEnvelope<HealthInfo>> health();
 
     @GET("auth/me")
-    Call<ApiEnvelope<JsonObject>> me();
+    Call<ApiEnvelope<com.kasiz.warehousemobileapp.model.MeProfile>> me();
 
     @POST("auth/logout")
     Call<ApiEnvelope<JsonObject>> logout();
@@ -119,11 +119,19 @@ public interface ApiService {
     @GET("work-orders")
     Call<ApiEnvelope<PaginatedPayload<WorkOrderItem>>> workOrders(
             @Query("limit") int limit,
-            @Query("offset") int offset
+            @Query("offset") int offset,
+            @Query("status") String status,
+            @Query("priority") String priority
     );
 
     @GET("work-orders/{id}")
     Call<ApiEnvelope<WorkOrderItem>> workOrderById(@Path("id") int id);
+
+    @GET("approvals/history/{resourceType}/{resourceId}")
+    Call<ApiEnvelope<com.kasiz.warehousemobileapp.model.ApprovalHistoryPayload>> approvalHistory(
+            @Path("resourceType") String resourceType,
+            @Path("resourceId") int resourceId
+    );
 
     @PATCH("work-orders/{id}/status")
     Call<ApiEnvelope<WorkOrderItem>> changeWorkOrderStatus(@Path("id") int id, @Body JsonObject body);

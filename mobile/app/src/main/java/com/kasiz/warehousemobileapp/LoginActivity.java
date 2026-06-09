@@ -83,13 +83,13 @@ public class LoginActivity extends AppCompatActivity {
 
     private void loadProfileThenOpenDashboard() {
         setLoading(true);
-        ApiClient.getService(this).me().enqueue(new Callback<ApiEnvelope<JsonObject>>() {
+        ApiClient.getService(this).me().enqueue(new Callback<ApiEnvelope<MeProfile>>() {
             @Override
-            public void onResponse(Call<ApiEnvelope<JsonObject>> call, Response<ApiEnvelope<JsonObject>> response) {
+            public void onResponse(Call<ApiEnvelope<MeProfile>> call, Response<ApiEnvelope<MeProfile>> response) {
                 setLoading(false);
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
                     try {
-                        MeProfile profile = gson.fromJson(response.body().data, MeProfile.class);
+                        MeProfile profile = response.body().data;
                         SessionManager.getInstance(LoginActivity.this).saveProfile(profile);
 
                         if (!SessionManager.getInstance(LoginActivity.this).isFieldWorker()) {
@@ -111,7 +111,7 @@ public class LoginActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<ApiEnvelope<JsonObject>> call, Throwable t) {
+            public void onFailure(Call<ApiEnvelope<MeProfile>> call, Throwable t) {
                 setLoading(false);
                 SessionManager.getInstance(LoginActivity.this).clear();
                 Toast.makeText(LoginActivity.this, "Lỗi kết nối khi tải cấu hình", Toast.LENGTH_SHORT).show();

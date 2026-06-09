@@ -49,8 +49,12 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
 
     private TextView textWoCode, textTitle, textStatus, textAsset;
     private TextView textDescription, textPriority, textSource, textPlannedDate, textEstimatedHours;
-    private TextView textAssignees, textNoPhotos;
+    private TextView textNoPhotos;
+    private TextView textLocation, textAssetType, textActualDate, textActualHours, textRequiresShutdown, textPowerState;
+    private android.widget.LinearLayout layoutAssignees;
     private View cardExecution, layoutActions, layoutRunningActions;
+    private View cardSubmittedChecklists, cardRecentChecklists, cardApprovalHistory;
+    private android.widget.LinearLayout layoutSubmittedChecklists, layoutRecentChecklists, layoutApprovalHistory;
     private Button buttonStart, buttonPause, buttonSaveDraft, buttonComplete, buttonResume, buttonChecklistExec, buttonResetBaseline, buttonUploadPhoto;
     private TextInputEditText editFieldNotes, editPartsNotes, editActualHours, editShutdownReason;
     private TextInputLayout layoutShutdownReason;
@@ -85,8 +89,22 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
         textSource = findViewById(R.id.textSource);
         textPlannedDate = findViewById(R.id.textPlannedDate);
         textEstimatedHours = findViewById(R.id.textEstimatedHours);
-        textAssignees = findViewById(R.id.textAssignees);
         textNoPhotos = findViewById(R.id.textNoPhotos);
+
+        textLocation = findViewById(R.id.textLocation);
+        textAssetType = findViewById(R.id.textAssetType);
+        textActualDate = findViewById(R.id.textActualDate);
+        textActualHours = findViewById(R.id.textActualHours);
+        textRequiresShutdown = findViewById(R.id.textRequiresShutdown);
+        textPowerState = findViewById(R.id.textPowerState);
+        layoutAssignees = findViewById(R.id.layoutAssignees);
+
+        cardSubmittedChecklists = findViewById(R.id.cardSubmittedChecklists);
+        cardRecentChecklists = findViewById(R.id.cardRecentChecklists);
+        cardApprovalHistory = findViewById(R.id.cardApprovalHistory);
+        layoutSubmittedChecklists = findViewById(R.id.layoutSubmittedChecklists);
+        layoutRecentChecklists = findViewById(R.id.layoutRecentChecklists);
+        layoutApprovalHistory = findViewById(R.id.layoutApprovalHistory);
 
         cardExecution = findViewById(R.id.cardExecution);
         layoutActions = findViewById(R.id.layoutActions);
@@ -110,6 +128,11 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         recyclerPhotos = findViewById(R.id.recyclerPhotos);
 
+        cardSubmittedChecklists = findViewById(R.id.cardSubmittedChecklists);
+        cardRecentChecklists = findViewById(R.id.cardRecentChecklists);
+        layoutSubmittedChecklists = findViewById(R.id.layoutSubmittedChecklists);
+        layoutRecentChecklists = findViewById(R.id.layoutRecentChecklists);
+
         recyclerPhotos.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         adapter = new WorkOrderPhotoAdapter(this, new ArrayList<>(), photo -> deletePhoto(photo), SessionManager.getInstance(this).getBaseUrl().replace("/api/", ""));
         recyclerPhotos.setAdapter(adapter);
@@ -118,9 +141,9 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
             layoutShutdownReason.setVisibility(isChecked ? View.VISIBLE : View.GONE);
         });
 
-        buttonStart.setOnClickListener(v -> updateStatus("RUNNING"));
+        buttonStart.setOnClickListener(v -> updateStatus("IN_PROGRESS"));
         buttonPause.setOnClickListener(v -> updateStatus("PAUSED"));
-        buttonResume.setOnClickListener(v -> updateStatus("RUNNING"));
+        buttonResume.setOnClickListener(v -> updateStatus("IN_PROGRESS"));
 
         buttonSaveDraft.setOnClickListener(v -> saveDraft());
         buttonComplete.setOnClickListener(v -> completeWork());
@@ -152,6 +175,7 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
                     currentItem = response.body().data;
                     renderDetail(currentItem);
+                    loadApprovalHistory();
                 } else {
                     Toast.makeText(WorkOrderDetailActivity.this, "Không tải được chi tiết phiếu việc", Toast.LENGTH_SHORT).show();
                 }
@@ -167,27 +191,96 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
 
     private void renderDetail(WorkOrderItem item) {
         textWoCode.setText("WO-" + String.format("%04d", item.woId));
-        textTitle.setText(safe(item.title));
+        textTitle.setText(safe(item.description));
+        
         textStatus.setText(getStatusLabel(item.status));
-        textAsset.setText("Thiết bị: " + safe(item.assetName) + " (ID: " + item.assetId + ")");
-        textDescription.setText("Mô tả: " + safe(item.description));
-        textPriority.setText("Mức độ ưu tiên: " + safe(item.priority));
-        textSource.setText("Nguồn phát sinh: " + safe(item.woSource));
-        textPlannedDate.setText("Ngày lên lịch: " + safe(item.plannedDate));
-        textEstimatedHours.setText("Thời gian ước tính: " + (item.estimatedHours != null ? item.estimatedHours + " giờ" : "--"));
+        textStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getStatusColor(item.status)));
 
-        // Render Assignees
-        StringBuilder assigneesText = new StringBuilder();
-        if (item.assignments != null) {
-            for (WorkOrderItem.Assignment a : item.assignments) {
-                if (assigneesText.length() > 0) assigneesText.append("\n");
-                assigneesText.append(safe(a.fullName)).append(" (").append(safe(a.positionName)).append(")");
-                if (a.isGroupLeader == 1) {
-                    assigneesText.append(" [Trưởng nhóm]");
-                }
-            }
+        textPriority.setText(getPriorityLabel(item.priority));
+        textPriority.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getPriorityColor(item.priority)));
+
+        textAsset.setText(safe(item.assetName) + " (ID: " + item.assetId + ")");
+        textLocation.setText(safe(item.locationName).isEmpty() ? "--" : safe(item.locationName));
+        textAssetType.setText(safe(item.assetTypeName).isEmpty() ? "--" : safe(item.assetTypeName));
+        textDescription.setText(safe(item.description).isEmpty() ? "Không có mô tả" : safe(item.description));
+        textSource.setText(safe(item.woSource));
+        textPlannedDate.setText(safe(item.plannedDate));
+        textActualDate.setText(safe(item.actualDate).isEmpty() ? "--" : safe(item.actualDate));
+        textEstimatedHours.setText(item.estimatedHours != null ? item.estimatedHours + " giờ" : "--");
+        textActualHours.setText(item.actualHours != null ? item.actualHours + " giờ" : "--");
+
+        if (item.requiresShutdown == 1) {
+            textRequiresShutdown.setText("Có dừng máy");
+            textRequiresShutdown.setTextColor(0xFFEF4444); // Red
+        } else {
+            textRequiresShutdown.setText("Không dừng máy");
+            textRequiresShutdown.setTextColor(0xFF10B981); // Green
         }
-        textAssignees.setText(assigneesText.length() == 0 ? "Chưa có người thực hiện" : assigneesText.toString());
+        
+        textPowerState.setText(safe(item.powerState).isEmpty() ? "--" : safe(item.powerState));
+
+        // Render Assignees dynamically
+        layoutAssignees.removeAllViews();
+        if (item.assignments != null && !item.assignments.isEmpty()) {
+            for (WorkOrderItem.Assignment a : item.assignments) {
+                View assView = getLayoutInflater().inflate(R.layout.item_assignee, layoutAssignees, false);
+                TextView textInitials = assView.findViewById(R.id.textInitials);
+                TextView textAssigneeName = assView.findViewById(R.id.textAssigneeName);
+                TextView textLeaderBadge = assView.findViewById(R.id.textLeaderBadge);
+                TextView textAssigneeRole = assView.findViewById(R.id.textAssigneeRole);
+
+                String name = safe(a.fullName);
+                textAssigneeName.setText(name);
+                
+                // Set initials
+                if (!name.isEmpty()) {
+                    String[] parts = name.split("\\s+");
+                    String initials = "";
+                    if (parts.length > 0) {
+                        String lastWord = parts[parts.length - 1];
+                        if (!lastWord.isEmpty()) {
+                            initials = lastWord.substring(0, 1).toUpperCase();
+                        }
+                    }
+                    textInitials.setText(initials.isEmpty() ? "A" : initials);
+                } else {
+                    textInitials.setText("-");
+                }
+
+                // Show leader badge
+                if (a.isGroupLeader == 1) {
+                    textLeaderBadge.setVisibility(View.VISIBLE);
+                } else {
+                    textLeaderBadge.setVisibility(View.GONE);
+                }
+
+                // Subtitle: Position • Specialty • CraftLevel
+                StringBuilder sub = new StringBuilder();
+                if (a.positionName != null && !a.positionName.trim().isEmpty()) {
+                    sub.append(a.positionName.trim());
+                }
+                if (a.specialty != null && !a.specialty.trim().isEmpty()) {
+                    if (sub.length() > 0) sub.append(" • ");
+                    sub.append(a.specialty.trim());
+                }
+                if (a.craftLevel != null && !a.craftLevel.trim().isEmpty()) {
+                    if (sub.length() > 0) sub.append(" • ");
+                    sub.append(a.craftLevel.trim());
+                }
+                textAssigneeRole.setText(sub.toString());
+
+                layoutAssignees.addView(assView);
+            }
+        } else {
+            View emptyView = getLayoutInflater().inflate(R.layout.item_assignee, layoutAssignees, false);
+            emptyView.findViewById(R.id.textInitials).setVisibility(View.GONE);
+            emptyView.findViewById(R.id.textLeaderBadge).setVisibility(View.GONE);
+            TextView nameTv = emptyView.findViewById(R.id.textAssigneeName);
+            nameTv.setText("Chưa có nhân viên phụ trách");
+            nameTv.setTextColor(0xFF9CA3AF);
+            emptyView.findViewById(R.id.textAssigneeRole).setVisibility(View.GONE);
+            layoutAssignees.addView(emptyView);
+        }
 
         // Render Photos
         List<WorkOrderItem.Photo> photos = item.photos == null ? new ArrayList<>() : item.photos;
@@ -196,14 +289,13 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
 
         // Control Execution UI
         String status = item.status;
-        boolean canWork = "WAITING".equals(status) || "RUNNING".equals(status) || "PAUSED".equals(status);
-        boolean isRunningOrPaused = "RUNNING".equals(status) || "PAUSED".equals(status);
+        boolean isRunningOrPaused = "IN_PROGRESS".equals(status) || "PAUSED".equals(status);
 
         cardExecution.setVisibility(isRunningOrPaused ? View.VISIBLE : View.GONE);
         buttonUploadPhoto.setVisibility(isRunningOrPaused ? View.VISIBLE : View.GONE);
 
         buttonStart.setVisibility("WAITING".equals(status) ? View.VISIBLE : View.GONE);
-        layoutRunningActions.setVisibility("RUNNING".equals(status) ? View.VISIBLE : View.GONE);
+        layoutRunningActions.setVisibility("IN_PROGRESS".equals(status) ? View.VISIBLE : View.GONE);
         buttonResume.setVisibility("PAUSED".equals(status) ? View.VISIBLE : View.GONE);
 
         boolean isCorrective = "CORRECTIVE".equalsIgnoreCase(item.woSource);
@@ -216,9 +308,81 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
             editFieldNotes.setText(safe(item.closureFieldNotes));
             editPartsNotes.setText(safe(item.closurePartsNotes));
             editActualHours.setText(item.actualHours != null ? String.valueOf(item.actualHours) : "");
-            checkShutdown.setChecked(item.requiresShutdown);
+            checkShutdown.setChecked(item.requiresShutdown == 1);
             editShutdownReason.setText(safe(item.shutdownReason));
-            layoutShutdownReason.setVisibility(item.requiresShutdown ? View.VISIBLE : View.GONE);
+            layoutShutdownReason.setVisibility(item.requiresShutdown == 1 ? View.VISIBLE : View.GONE);
+        }
+
+        // Render Submitted Checklists
+        layoutSubmittedChecklists.removeAllViews();
+        if (item.woLinkedChecklists != null && !item.woLinkedChecklists.isEmpty()) {
+            cardSubmittedChecklists.setVisibility(View.VISIBLE);
+            for (com.kasiz.warehousemobileapp.model.ChecklistResultItem cl : item.woLinkedChecklists) {
+                View clView = getLayoutInflater().inflate(R.layout.item_linked_checklist, layoutSubmittedChecklists, false);
+                TextView textStatusBadges = clView.findViewById(R.id.textStatusBadges);
+                TextView textMeta = clView.findViewById(R.id.textMeta);
+                TextView textTemplate = clView.findViewById(R.id.textTemplate);
+
+                textStatusBadges.setText("[" + safe(cl.overallStatus) + "] [" + getReviewStatusLabel(cl.reviewStatus) + "]");
+                textMeta.setText("#" + cl.checklistId + " • " + safe(cl.checkerName) + " • " + safe(cl.checkTime));
+                if (cl.templateName != null && !cl.templateName.trim().isEmpty()) {
+                    textTemplate.setVisibility(View.VISIBLE);
+                    textTemplate.setText("Mẫu: " + cl.templateName);
+                } else {
+                    textTemplate.setVisibility(View.GONE);
+                }
+
+                clView.setOnClickListener(v -> {
+                    Intent intent = new Intent(WorkOrderDetailActivity.this, ChecklistDetailActivity.class);
+                    intent.putExtra(ChecklistDetailActivity.EXTRA_CHECKLIST_ID, cl.checklistId);
+                    startActivity(intent);
+                });
+
+                layoutSubmittedChecklists.addView(clView);
+            }
+        } else {
+            cardSubmittedChecklists.setVisibility(View.GONE);
+        }
+
+        // Render Recent Checklists
+        layoutRecentChecklists.removeAllViews();
+        if (item.recentChecklists != null && !item.recentChecklists.isEmpty()) {
+            cardRecentChecklists.setVisibility(View.VISIBLE);
+            for (com.kasiz.warehousemobileapp.model.ChecklistResultItem c : item.recentChecklists) {
+                View clView = getLayoutInflater().inflate(R.layout.item_recent_checklist, layoutRecentChecklists, false);
+                TextView textStatusBadge = clView.findViewById(R.id.textStatusBadge);
+                TextView textMeta = clView.findViewById(R.id.textMeta);
+                TextView textReading = clView.findViewById(R.id.textReading);
+                TextView textNotes = clView.findViewById(R.id.textNotes);
+
+                textStatusBadge.setText("[" + safe(c.overallStatus) + "]");
+                textMeta.setText("#" + c.checklistId + " • " + safe(c.checkTime) + (c.checkerName != null ? " • " + c.checkerName : ""));
+                
+                if (c.readingValue != null) {
+                    textReading.setVisibility(View.VISIBLE);
+                    textReading.setText("Đồng hồ: " + c.readingValue + " h");
+                } else {
+                    textReading.setVisibility(View.GONE);
+                }
+
+                if (c.notes != null && !c.notes.trim().isEmpty()) {
+                    textNotes.setText(c.notes);
+                    textNotes.setTextColor(0xFF1F2937); // Dark gray
+                } else {
+                    textNotes.setText("Không có ghi chú hiện trường.");
+                    textNotes.setTextColor(0xFF9CA3AF); // Light gray
+                }
+
+                clView.setOnClickListener(v -> {
+                    Intent intent = new Intent(WorkOrderDetailActivity.this, ChecklistDetailActivity.class);
+                    intent.putExtra(ChecklistDetailActivity.EXTRA_CHECKLIST_ID, c.checklistId);
+                    startActivity(intent);
+                });
+
+                layoutRecentChecklists.addView(clView);
+            }
+        } else {
+            cardRecentChecklists.setVisibility(View.GONE);
         }
     }
 
@@ -492,11 +656,134 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
 
     private String getStatusLabel(String status) {
         if ("WAITING".equals(status)) return "Chờ thực hiện";
-        if ("RUNNING".equals(status)) return "Đang thực hiện";
+        if ("RUNNING".equals(status) || "IN_PROGRESS".equals(status)) return "Đang thực hiện";
         if ("PAUSED".equals(status)) return "Đang tạm dừng";
         if ("AWAITING_CLOSURE".equals(status)) return "Chờ nghiệm thu";
         if ("COMPLETED".equals(status)) return "Đã hoàn thành";
         if ("CANCELLED".equals(status)) return "Đã hủy";
+        if ("PENDING_APPROVAL".equals(status)) return "Chờ phê duyệt";
         return status;
+    }
+
+    private int getStatusColor(String status) {
+        if ("WAITING".equals(status)) return 0xFF64748B;
+        if ("RUNNING".equals(status) || "IN_PROGRESS".equals(status)) return 0xFF3B82F6;
+        if ("PAUSED".equals(status)) return 0xFFF59E0B;
+        if ("AWAITING_CLOSURE".equals(status)) return 0xFF8B5CF6;
+        if ("COMPLETED".equals(status)) return 0xFF10B981;
+        if ("CANCELLED".equals(status)) return 0xFFEF4444;
+        if ("PENDING_APPROVAL".equals(status)) return 0xFFF59E0B;
+        return 0xFF64748B;
+    }
+
+    private String getPriorityLabel(String priority) {
+        if ("LOW".equals(priority)) return "Thấp";
+        if ("MEDIUM".equals(priority)) return "Trung bình";
+        if ("HIGH".equals(priority)) return "Cao";
+        if ("URGENT".equals(priority)) return "Khẩn cấp";
+        if ("EMERGENCY".equals(priority)) return "Khẩn cấp";
+        return safe(priority);
+    }
+
+    private int getPriorityColor(String priority) {
+        if ("LOW".equals(priority)) return 0xFF10B981;
+        if ("MEDIUM".equals(priority)) return 0xFF3B82F6;
+        if ("HIGH".equals(priority)) return 0xFFF59E0B;
+        if ("URGENT".equals(priority) || "EMERGENCY".equals(priority)) return 0xFFEF4444;
+        return 0xFF3B82F6;
+    }
+
+    private String getReviewStatusLabel(String status) {
+        if ("PENDING".equals(status)) return "Chờ duyệt";
+        if ("APPROVED".equals(status)) return "Đã duyệt";
+        if ("REJECTED".equals(status)) return "Từ chối";
+        return safe(status);
+    }
+
+    private void loadApprovalHistory() {
+        ApiClient.getService(this).approvalHistory("WORK_ORDER", woId)
+                .enqueue(new Callback<ApiEnvelope<com.kasiz.warehousemobileapp.model.ApprovalHistoryPayload>>() {
+            @Override
+            public void onResponse(Call<ApiEnvelope<com.kasiz.warehousemobileapp.model.ApprovalHistoryPayload>> call,
+                                   Response<ApiEnvelope<com.kasiz.warehousemobileapp.model.ApprovalHistoryPayload>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
+                    renderApprovalHistory(response.body().data.logs);
+                } else {
+                    cardApprovalHistory.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiEnvelope<com.kasiz.warehousemobileapp.model.ApprovalHistoryPayload>> call, Throwable t) {
+                cardApprovalHistory.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void renderApprovalHistory(List<com.kasiz.warehousemobileapp.model.ApprovalLogItem> logs) {
+        layoutApprovalHistory.removeAllViews();
+        if (logs != null && !logs.isEmpty()) {
+            cardApprovalHistory.setVisibility(View.VISIBLE);
+            for (com.kasiz.warehousemobileapp.model.ApprovalLogItem log : logs) {
+                View logView = getLayoutInflater().inflate(R.layout.item_approval_log, layoutApprovalHistory, false);
+                TextView textStepName = logView.findViewById(R.id.textStepName);
+                TextView textActionDate = logView.findViewById(R.id.textActionDate);
+                TextView textApproverInfo = logView.findViewById(R.id.textApproverInfo);
+                TextView textApprovalStatusBadge = logView.findViewById(R.id.textApprovalStatusBadge);
+                TextView textApprovalComment = logView.findViewById(R.id.textApprovalComment);
+
+                textStepName.setText("Bước " + log.currentLevel + " - " + safe(log.stepPositionName));
+                
+                if (log.actionDate != null && !log.actionDate.isEmpty()) {
+                    try {
+                        String date = log.actionDate;
+                        if (date.contains("T")) {
+                            date = date.replace("T", " ");
+                        }
+                        if (date.contains(".")) {
+                            date = date.substring(0, date.indexOf("."));
+                        }
+                        textActionDate.setText(date);
+                    } catch (Exception e) {
+                        textActionDate.setText(safe(log.actionDate));
+                    }
+                } else {
+                    textActionDate.setText("--");
+                }
+
+                textApproverInfo.setText("Người duyệt: " + safe(log.approverName));
+
+                String status = log.status;
+                textApprovalStatusBadge.setText(getApprovalStatusLabel(status));
+                textApprovalStatusBadge.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getApprovalStatusColor(status)));
+
+                if (log.comment != null && !log.comment.trim().isEmpty()) {
+                    textApprovalComment.setVisibility(View.VISIBLE);
+                    textApprovalComment.setText("Ý kiến: " + log.comment.trim());
+                } else {
+                    textApprovalComment.setVisibility(View.GONE);
+                }
+
+                layoutApprovalHistory.addView(logView);
+            }
+        } else {
+            cardApprovalHistory.setVisibility(View.GONE);
+        }
+    }
+
+    private String getApprovalStatusLabel(String status) {
+        if ("PENDING".equals(status)) return "CHỜ DUYỆT";
+        if ("APPROVED".equals(status)) return "ĐÃ DUYỆT";
+        if ("REJECTED".equals(status)) return "TỪ CHỐI";
+        if ("REQUEST_CHANGES".equals(status)) return "YÊU CẦU SỬA";
+        return safe(status);
+    }
+
+    private int getApprovalStatusColor(String status) {
+        if ("PENDING".equals(status)) return 0xFF64748B; // Slate
+        if ("APPROVED".equals(status)) return 0xFF10B981; // Green
+        if ("REJECTED".equals(status)) return 0xFFEF4444; // Red
+        if ("REQUEST_CHANGES".equals(status)) return 0xFFF59E0B; // Amber
+        return 0xFF64748B;
     }
 }

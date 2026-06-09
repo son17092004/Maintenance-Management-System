@@ -45,6 +45,15 @@ public class ModuleListActivity extends AppCompatActivity {
     private ListRowAdapter adapter;
     private String module;
 
+    private View layoutFilters;
+    private com.google.android.material.chip.ChipGroup chipGroupStatus;
+    private android.widget.Spinner spinnerPriority;
+    private String selectedStatus = null;
+    private String selectedPriority = null;
+
+    private static final String[] PRIORITIES = {"Mọi ưu tiên", "EMERGENCY", "HIGH", "MEDIUM", "LOW"};
+    private static final String[] PRIORITY_VALUES = {null, "EMERGENCY", "HIGH", "MEDIUM", "LOW"};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +78,48 @@ public class ModuleListActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         buttonRefresh.setOnClickListener(v -> loadList());
+
+        layoutFilters = findViewById(R.id.layoutFilters);
+        chipGroupStatus = findViewById(R.id.chipGroupStatus);
+        spinnerPriority = findViewById(R.id.spinnerPriority);
+
+        if (MODULE_WORK_ORDERS.equals(module)) {
+            layoutFilters.setVisibility(View.VISIBLE);
+            
+            chipGroupStatus.setOnCheckedChangeListener((group, checkedId) -> {
+                if (checkedId == R.id.chipWaiting) {
+                    selectedStatus = "WAITING";
+                } else if (checkedId == R.id.chipRunning) {
+                    selectedStatus = "IN_PROGRESS";
+                } else if (checkedId == R.id.chipAwaitingClosure) {
+                    selectedStatus = "AWAITING_CLOSURE";
+                } else if (checkedId == R.id.chipCompleted) {
+                    selectedStatus = "COMPLETED";
+                } else if (checkedId == R.id.chipCancelled) {
+                    selectedStatus = "CANCELLED";
+                } else {
+                    selectedStatus = null;
+                }
+                loadList();
+            });
+
+            android.widget.ArrayAdapter<String> priorityAdapter = new android.widget.ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_item, PRIORITIES);
+            priorityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerPriority.setAdapter(priorityAdapter);
+            spinnerPriority.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                    selectedPriority = PRIORITY_VALUES[position];
+                    loadList();
+                }
+
+                @Override
+                public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                }
+            });
+        }
+
         loadList();
     }
 
@@ -91,17 +142,21 @@ public class ModuleListActivity extends AppCompatActivity {
     }
 
     private void loadWorkOrders() {
-        ApiClient.getService(this).workOrders(20, 0).enqueue(new Callback<ApiEnvelope<PaginatedPayload<WorkOrderItem>>>() {
+        ApiClient.getService(this).workOrders(20, 0, selectedStatus, selectedPriority).enqueue(new Callback<ApiEnvelope<PaginatedPayload<WorkOrderItem>>>() {
             @Override
             public void onResponse(Call<ApiEnvelope<PaginatedPayload<WorkOrderItem>>> call, Response<ApiEnvelope<PaginatedPayload<WorkOrderItem>>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
                     List<WorkOrderItem> items = response.body().data.items == null ? new ArrayList<>() : response.body().data.items;
                     List<ListRow> rows = new ArrayList<>();
                     for (WorkOrderItem item : items) {
+                        String titleText = safe(item.description);
+                        if (titleText.length() > 50) {
+                            titleText = titleText.substring(0, 47) + "...";
+                        }
                         rows.add(new ListRow(
                                 item.woId,
                                 MODULE_WORK_ORDERS,
-                                "WO-" + String.format("%04d", item.woId) + ": " + safe(item.title),
+                                "WO-" + String.format("%04d", item.woId) + ": " + titleText,
                                 joinNonEmpty(item.assetName, "Độ ưu tiên: " + safe(item.priority)),
                                 safe(item.status),
                                 joinNonEmpty("Nguồn: " + safe(item.woSource), "Ngày lên lịch: " + safe(item.plannedDate))

@@ -45,6 +45,25 @@ public class MeProfile {
         public String headline;
         @SerializedName("detail")
         public String detail;
+        @SerializedName("activeWorkOrder")
+        public ActiveWorkOrder activeWorkOrder;
+    }
+
+    public static class ActiveWorkOrder {
+        @SerializedName("woId")
+        public int woId;
+        @SerializedName("status")
+        public String status;
+        @SerializedName("priority")
+        public String priority;
+        @SerializedName("woSource")
+        public String woSource;
+        @SerializedName("plannedDate")
+        public String plannedDate;
+        @SerializedName("assetName")
+        public String assetName;
+        @SerializedName("locationName")
+        public String locationName;
     }
 
     public static class PermissionItem {

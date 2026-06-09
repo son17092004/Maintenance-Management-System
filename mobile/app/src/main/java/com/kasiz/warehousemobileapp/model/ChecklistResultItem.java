@@ -26,4 +26,10 @@ public class ChecklistResultItem {
 
     @SerializedName("templateName")
     public String templateName;
+
+    @SerializedName("readingValue")
+    public Double readingValue;
+
+    @SerializedName("notes")
+    public String notes;
 }

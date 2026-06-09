@@ -49,11 +49,11 @@ public class ProfileActivity extends AppCompatActivity {
 
     private void loadMe() {
         setLoading(true);
-        ApiClient.getService(this).me().enqueue(new Callback<ApiEnvelope<JsonObject>>() {
+        ApiClient.getService(this).me().enqueue(new Callback<ApiEnvelope<MeProfile>>() {
             @Override
-            public void onResponse(Call<ApiEnvelope<JsonObject>> call, Response<ApiEnvelope<JsonObject>> response) {
+            public void onResponse(Call<ApiEnvelope<MeProfile>> call, Response<ApiEnvelope<MeProfile>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
-                    MeProfile profile = new com.google.gson.Gson().fromJson(response.body().data, MeProfile.class);
+                    MeProfile profile = response.body().data;
                     textName.setText(safe(profile.fullName));
                     textMeta.setText(join(profile.username, profile.email, profile.positionName, profile.departmentName));
                     if (profile.fieldWorkSummary != null) {
@@ -68,7 +68,7 @@ public class ProfileActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<ApiEnvelope<JsonObject>> call, Throwable t) {
+            public void onFailure(Call<ApiEnvelope<MeProfile>> call, Throwable t) {
                 Toast.makeText(ProfileActivity.this, "Không kết nối được server", Toast.LENGTH_SHORT).show();
                 setLoading(false);
             }

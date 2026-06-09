@@ -28,6 +28,15 @@ public class WorkOrderItem {
     @SerializedName("assetName")
     public String assetName;
 
+    @SerializedName("assetTypeName")
+    public String assetTypeName;
+
+    @SerializedName("locationName")
+    public String locationName;
+
+    @SerializedName("actualDate")
+    public String actualDate;
+
     @SerializedName("plannedDate")
     public String plannedDate;
 
@@ -44,7 +53,7 @@ public class WorkOrderItem {
     public String closurePartsNotes;
 
     @SerializedName("requiresShutdown")
-    public boolean requiresShutdown;
+    public int requiresShutdown;
 
     @SerializedName("shutdownReason")
     public String shutdownReason;
@@ -61,6 +70,12 @@ public class WorkOrderItem {
     @SerializedName("photos")
     public List<Photo> photos;
 
+    @SerializedName("woLinkedChecklists")
+    public List<ChecklistResultItem> woLinkedChecklists;
+
+    @SerializedName("recentChecklists")
+    public List<ChecklistResultItem> recentChecklists;
+
     public static class Assignment {
         @SerializedName("employeeId")
         public int employeeId;
@@ -70,6 +85,12 @@ public class WorkOrderItem {
 
         @SerializedName("positionName")
         public String positionName;
+
+        @SerializedName("specialty")
+        public String specialty;
+
+        @SerializedName("craftLevel")
+        public String craftLevel;
 
         @SerializedName("isGroupLeader")
         public int isGroupLeader;
