@@ -109,7 +109,10 @@ public interface ApiService {
     @GET("checklists/results")
     Call<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>> checklistResults(
             @Query("limit") int limit,
-            @Query("offset") int offset
+            @Query("offset") int offset,
+            @Query("q") String q,
+            @Query("overallStatus") String overallStatus,
+            @Query("reviewStatus") String reviewStatus
     );
 
     @GET("checklists/results/{id}")
@@ -156,6 +159,12 @@ public interface ApiService {
     // --- Checklist QR & Submission ---
     @GET("checklists/qr/{assetId}")
     Call<ApiEnvelope<JsonObject>> getChecklistQrInfo(@Path("assetId") String assetId, @Query("woId") Integer woId);
+
+    @GET("assets/{id}/maintenance-history")
+    Call<ApiEnvelope<List<JsonObject>>> assetMaintenanceHistory(
+            @Path("id") int id,
+            @Query("limit") int limit
+    );
 
     @Multipart
     @POST("checklists/results")

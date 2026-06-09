@@ -32,6 +32,18 @@ public class ChecklistDetailItem {
     @SerializedName("notes")
     public String notes;
 
+    @SerializedName("evidencePhoto")
+    public String evidencePhoto;
+
+    @SerializedName("readingValue")
+    public Double readingValue;
+
+    @SerializedName("supervisorNotes")
+    public String supervisorNotes;
+
+    @SerializedName("locationName")
+    public String locationName;
+
     @SerializedName("details")
     public List<ChecklistDetailRow> details;
 }

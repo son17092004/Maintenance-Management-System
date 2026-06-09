@@ -36,6 +36,9 @@
             android:name=".ChecklistDetailActivity"
             android:exported="false" />
         <activity
+            android:name=".ChecklistScanActivity"
+            android:exported="false" />
+        <activity
             android:name=".NotificationCenterActivity"
             android:exported="false" />
         <activity

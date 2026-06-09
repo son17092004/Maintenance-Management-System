@@ -1,5 +1,6 @@
 package com.kasiz.warehousemobileapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -51,8 +52,22 @@ public class ModuleListActivity extends AppCompatActivity {
     private String selectedStatus = null;
     private String selectedPriority = null;
 
+    private View layoutChecklistFilters;
+    private com.google.android.material.textfield.TextInputEditText editChecklistSearch;
+    private android.widget.Spinner spinnerOverallStatus;
+    private android.widget.Spinner spinnerReviewStatus;
+    private String selectedChecklistSearch = null;
+    private String selectedOverallStatus = null;
+    private String selectedReviewStatus = null;
+
     private static final String[] PRIORITIES = {"Mọi ưu tiên", "EMERGENCY", "HIGH", "MEDIUM", "LOW"};
     private static final String[] PRIORITY_VALUES = {null, "EMERGENCY", "HIGH", "MEDIUM", "LOW"};
+
+    private static final String[] OVERALL_STATUS_OPTIONS = {"Tất cả kết quả", "OK", "WARNING (cảnh báo)", "NG (sự cố)"};
+    private static final String[] OVERALL_STATUS_VALUES = {null, "OK", "WARNING", "NG"};
+
+    private static final String[] REVIEW_STATUS_OPTIONS = {"Tất cả trạng thái duyệt", "Chờ duyệt", "Đã duyệt", "Bị từ chối"};
+    private static final String[] REVIEW_STATUS_VALUES = {null, "PENDING", "APPROVED", "REJECTED"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +83,16 @@ public class ModuleListActivity extends AppCompatActivity {
         textEmpty = findViewById(R.id.textEmpty);
         progressBar = findViewById(R.id.progressBar);
         Button buttonRefresh = findViewById(R.id.buttonRefresh);
+        Button buttonScanQr = findViewById(R.id.buttonScanQr);
         RecyclerView recyclerView = findViewById(R.id.recyclerList);
+
+        if (MODULE_CHECKLISTS.equals(module)) {
+            buttonScanQr.setVisibility(View.VISIBLE);
+            buttonScanQr.setOnClickListener(v -> {
+                Intent intent = new Intent(this, ChecklistScanActivity.class);
+                startActivity(intent);
+            });
+        }
 
         textTitle.setText(TextUtils.isEmpty(title) ? "Danh sách" : title);
         textSubtitle.setText(TextUtils.isEmpty(subtitle) ? "" : subtitle);
@@ -117,6 +141,58 @@ public class ModuleListActivity extends AppCompatActivity {
                 @Override
                 public void onNothingSelected(android.widget.AdapterView<?> parent) {
                 }
+            });
+        }
+
+        layoutChecklistFilters = findViewById(R.id.layoutChecklistFilters);
+        editChecklistSearch = findViewById(R.id.editChecklistSearch);
+        spinnerOverallStatus = findViewById(R.id.spinnerOverallStatus);
+        spinnerReviewStatus = findViewById(R.id.spinnerReviewStatus);
+
+        if (MODULE_CHECKLISTS.equals(module)) {
+            layoutChecklistFilters.setVisibility(View.VISIBLE);
+
+            editChecklistSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                @Override
+                public void afterTextChanged(android.text.Editable s) {
+                    selectedChecklistSearch = s.toString().trim();
+                    if (selectedChecklistSearch.isEmpty()) {
+                        selectedChecklistSearch = null;
+                    }
+                    loadList();
+                }
+            });
+
+            android.widget.ArrayAdapter<String> overallAdapter = new android.widget.ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_item, OVERALL_STATUS_OPTIONS);
+            overallAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerOverallStatus.setAdapter(overallAdapter);
+            spinnerOverallStatus.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                    selectedOverallStatus = OVERALL_STATUS_VALUES[position];
+                    loadList();
+                }
+                @Override
+                public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+            });
+
+            android.widget.ArrayAdapter<String> reviewAdapter = new android.widget.ArrayAdapter<>(
+                    this, android.R.layout.simple_spinner_item, REVIEW_STATUS_OPTIONS);
+            reviewAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerReviewStatus.setAdapter(reviewAdapter);
+            spinnerReviewStatus.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                    selectedReviewStatus = REVIEW_STATUS_VALUES[position];
+                    loadList();
+                }
+                @Override
+                public void onNothingSelected(android.widget.AdapterView<?> parent) {}
             });
         }
 
@@ -212,7 +288,7 @@ public class ModuleListActivity extends AppCompatActivity {
     }
 
     private void loadChecklists() {
-        ApiClient.getService(this).checklistResults(20, 0).enqueue(new Callback<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>>() {
+        ApiClient.getService(this).checklistResults(20, 0, selectedChecklistSearch, selectedOverallStatus, selectedReviewStatus).enqueue(new Callback<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>>() {
             @Override
             public void onResponse(Call<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>> call, Response<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
