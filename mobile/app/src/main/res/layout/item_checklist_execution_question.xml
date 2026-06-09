@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    android:layout_marginBottom="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/textQuestionIndex"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#3B82F6"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:text="CÂU HỎI 1" />
+
+        <TextView
+            android:id="@+id/textQuestionText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#102030"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:text="Nội dung câu hỏi..." />
+
+        <!-- Input Type: PassFail RadioGroup -->
+        <RadioGroup
+            android:id="@+id/groupPassFail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <RadioButton
+                android:id="@+id/radioPass"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Đạt (OK)"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/radioFail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:text="Không đạt (NG)" />
+        </RadioGroup>
+
+        <!-- Input Type: Numeric / Range / Text EditText -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editAnswer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Input Type: Photo Upload -->
+        <LinearLayout
+            android:id="@+id/layoutPhotoUpload"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonPickQuestionPhoto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Chụp/Chọn ảnh"
+                    app:cornerRadius="8dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+                <TextView
+                    android:id="@+id/textQuestionPhotoName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:textColor="#4B5563"
+                    android:text="Chưa chọn ảnh" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/imageQuestionPhotoPreview"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:layout_marginTop="6dp"
+                android:scaleType="centerCrop"
+                android:background="#E5E7EB"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Threshold / Out of Range / Warning Hint -->
+        <TextView
+            android:id="@+id/textWarningHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#EF4444"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
