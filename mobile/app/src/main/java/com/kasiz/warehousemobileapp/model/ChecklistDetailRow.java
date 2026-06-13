@@ -16,5 +16,9 @@ public class ChecklistDetailRow {
     public String answerValue;
 
     @SerializedName("isOK")
-    public boolean isOK;
+    public Integer isOK;
+
+    public boolean isOK() {
+        return isOK != null && isOK == 1;
+    }
 }

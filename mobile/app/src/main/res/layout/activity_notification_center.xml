@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,9 +11,19 @@
         android:orientation="vertical"
         android:padding="20dp">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Trung tâm thông báo"
+            android:textColor="#102030"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             app:cardCornerRadius="24dp"
             app:cardElevation="0dp">
 
@@ -28,7 +38,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="#102030"
-                    android:textSize="20sp"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <ProgressBar
@@ -59,11 +69,22 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:layout_weight="1"
-                        android:text="Đã đọc hết"
+                        android:text="Đánh dấu đã đọc"
                         app:cornerRadius="16dp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/textEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:gravity="center"
+            android:text="Không có thông báo nào"
+            android:textColor="#9CA3AF"
+            android:textSize="15sp"
+            android:visibility="gone" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerNotifications"
@@ -71,5 +92,43 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:nestedScrollingEnabled="false" />
+
+        <!-- Pagination controls -->
+        <LinearLayout
+            android:id="@+id/layoutPagination"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonPrevPage"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="← Trước"
+                android:textColor="#0F766E" />
+
+            <TextView
+                android:id="@+id/textPageIndicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:text="Trang 1"
+                android:textColor="#1C2430"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonNextPage"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sau →"
+                android:textColor="#0F766E" />
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+</androidx.core.widget.NestedScrollView>

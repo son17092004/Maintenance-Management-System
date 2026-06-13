@@ -32,6 +32,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -59,6 +61,15 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
     private TextInputEditText editFieldNotes, editPartsNotes, editActualHours, editShutdownReason;
     private TextInputLayout layoutShutdownReason;
     private CheckBox checkShutdown;
+
+    // Power Control Card & Checklist Requirements Card
+    private View cardPowerControl, cardChecklistRequirements;
+    private TextView textCurrentPowerState, textChecklistRequirementsMet;
+    private TextInputLayout layoutPowerShutdownReason;
+    private TextInputEditText editPowerShutdownReason;
+    private Button buttonPowerShutdown, buttonPowerStartup;
+    private android.widget.LinearLayout layoutChecklistRequirements;
+
     private ProgressBar progressBar;
     private RecyclerView recyclerPhotos;
     private WorkOrderPhotoAdapter adapter;
@@ -128,6 +139,19 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         recyclerPhotos = findViewById(R.id.recyclerPhotos);
 
+        cardPowerControl = findViewById(R.id.cardPowerControl);
+        cardChecklistRequirements = findViewById(R.id.cardChecklistRequirements);
+        textCurrentPowerState = findViewById(R.id.textCurrentPowerState);
+        textChecklistRequirementsMet = findViewById(R.id.textChecklistRequirementsMet);
+        layoutPowerShutdownReason = findViewById(R.id.layoutPowerShutdownReason);
+        editPowerShutdownReason = findViewById(R.id.editPowerShutdownReason);
+        buttonPowerShutdown = findViewById(R.id.buttonPowerShutdown);
+        buttonPowerStartup = findViewById(R.id.buttonPowerStartup);
+        layoutChecklistRequirements = findViewById(R.id.layoutChecklistRequirements);
+
+        buttonPowerShutdown.setOnClickListener(v -> performPowerAction("SHUTDOWN"));
+        buttonPowerStartup.setOnClickListener(v -> performPowerAction("STARTUP"));
+
         cardSubmittedChecklists = findViewById(R.id.cardSubmittedChecklists);
         cardRecentChecklists = findViewById(R.id.cardRecentChecklists);
         layoutSubmittedChecklists = findViewById(R.id.layoutSubmittedChecklists);
@@ -141,7 +165,7 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
             layoutShutdownReason.setVisibility(isChecked ? View.VISIBLE : View.GONE);
         });
 
-        buttonStart.setOnClickListener(v -> updateStatus("IN_PROGRESS"));
+        buttonStart.setOnClickListener(v -> startWorkOrderFlow());
         buttonPause.setOnClickListener(v -> updateStatus("PAUSED"));
         buttonResume.setOnClickListener(v -> updateStatus("IN_PROGRESS"));
 
@@ -291,26 +315,167 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
         String status = item.status;
         boolean isRunningOrPaused = "IN_PROGRESS".equals(status) || "PAUSED".equals(status);
 
-        cardExecution.setVisibility(isRunningOrPaused ? View.VISIBLE : View.GONE);
-        buttonUploadPhoto.setVisibility(isRunningOrPaused ? View.VISIBLE : View.GONE);
+        com.kasiz.warehousemobileapp.model.MeProfile profile = SessionManager.getInstance(this).getCachedProfile();
+        int currentUserId = profile != null ? profile.employeeId : 0;
+        int level = profile != null ? profile.positionLevel : 0;
 
-        buttonStart.setVisibility("WAITING".equals(status) ? View.VISIBLE : View.GONE);
-        layoutRunningActions.setVisibility("IN_PROGRESS".equals(status) ? View.VISIBLE : View.GONE);
-        buttonResume.setVisibility("PAUSED".equals(status) ? View.VISIBLE : View.GONE);
+        boolean isAssigned = false;
+        boolean amGroupLeader = false;
+        if (item.assignments != null) {
+            for (WorkOrderItem.Assignment a : item.assignments) {
+                if (a.employeeId == currentUserId) {
+                    isAssigned = true;
+                    if (a.isGroupLeader == 1) {
+                        amGroupLeader = true;
+                    }
+                }
+            }
+        }
+        boolean isTcPlus = level >= 3; // LEVEL_TRUONG_CA is 3
+        boolean canUpdate = SessionManager.getInstance(this).hasPermission("WORK_ORDER", "UPDATE");
 
+        boolean canAcceptWork = canUpdate && (amGroupLeader || isTcPlus);
+        boolean canReportAwaiting = canUpdate && (amGroupLeader || isTcPlus);
+        boolean canUploadPhotos = canUpdate && (isAssigned || isTcPlus) && "IN_PROGRESS".equals(status);
+        boolean canEditClosureDraft = canUpdate && (amGroupLeader || isTcPlus) && ("WAITING".equals(status) || "IN_PROGRESS".equals(status) || "PAUSED".equals(status));
         boolean isCorrective = "CORRECTIVE".equalsIgnoreCase(item.woSource);
-        buttonResetBaseline.setVisibility((isRunningOrPaused && isCorrective) ? View.VISIBLE : View.GONE);
+        boolean canResetRuntimeBaseline = isCorrective && (item.counterBaselineResetAt == null) && canUpdate && (amGroupLeader || isTcPlus) && ("IN_PROGRESS".equals(status) || "PAUSED".equals(status));
+        boolean canControlMachinePower = canUpdate && (amGroupLeader || isTcPlus) && ("IN_PROGRESS".equals(status) || "PAUSED".equals(status) || "AWAITING_CLOSURE".equals(status));
+
+        cardExecution.setVisibility((isRunningOrPaused && canEditClosureDraft) ? View.VISIBLE : View.GONE);
+        buttonUploadPhoto.setVisibility(canUploadPhotos ? View.VISIBLE : View.GONE);
+
+        buttonStart.setVisibility(("WAITING".equals(status) && canAcceptWork) ? View.VISIBLE : View.GONE);
+        layoutRunningActions.setVisibility("IN_PROGRESS".equals(status) ? View.VISIBLE : View.GONE);
+        buttonResume.setVisibility(("PAUSED".equals(status) && canAcceptWork) ? View.VISIBLE : View.GONE);
+
+        // Control Pause/SaveDraft/Complete individually inside running actions
+        buttonPause.setVisibility(canAcceptWork ? View.VISIBLE : View.GONE);
+        buttonSaveDraft.setVisibility(canEditClosureDraft ? View.VISIBLE : View.GONE);
+        buttonComplete.setVisibility(canReportAwaiting ? View.VISIBLE : View.GONE);
+
+        buttonResetBaseline.setVisibility(canResetRuntimeBaseline ? View.VISIBLE : View.GONE);
 
         // Show Checklist button if it has schedule / template, or generally in progress
         buttonChecklistExec.setVisibility(isRunningOrPaused ? View.VISIBLE : View.GONE);
 
-        if (isRunningOrPaused) {
+        if (isRunningOrPaused && canEditClosureDraft) {
             editFieldNotes.setText(safe(item.closureFieldNotes));
             editPartsNotes.setText(safe(item.closurePartsNotes));
             editActualHours.setText(item.actualHours != null ? String.valueOf(item.actualHours) : "");
             checkShutdown.setChecked(item.requiresShutdown == 1);
             editShutdownReason.setText(safe(item.shutdownReason));
             layoutShutdownReason.setVisibility(item.requiresShutdown == 1 ? View.VISIBLE : View.GONE);
+        }
+
+        // Render Machine Power Control Card
+        cardPowerControl.setVisibility(canControlMachinePower ? View.VISIBLE : View.GONE);
+        if (canControlMachinePower) {
+            boolean machineIsShutdown = "SHUTDOWN".equalsIgnoreCase(item.powerState);
+            textCurrentPowerState.setText("Trạng thái hiện tại: " + (machineIsShutdown ? "Đang tắt máy" : "Đang bật máy"));
+            
+            if (machineIsShutdown) {
+                buttonPowerStartup.setVisibility(View.VISIBLE);
+                buttonPowerShutdown.setVisibility(View.GONE);
+                layoutPowerShutdownReason.setVisibility(View.GONE);
+            } else {
+                buttonPowerStartup.setVisibility(View.GONE);
+                buttonPowerShutdown.setVisibility(View.VISIBLE);
+                layoutPowerShutdownReason.setVisibility(View.VISIBLE);
+            }
+        }
+
+        // Render Checklist Requirements
+        layoutChecklistRequirements.removeAllViews();
+        if (item.checklistRequirements != null && !item.checklistRequirements.isEmpty()) {
+            cardChecklistRequirements.setVisibility(View.VISIBLE);
+            
+            boolean allMet = item.checklistRequirementsMet != null ? item.checklistRequirementsMet : false;
+            textChecklistRequirementsMet.setVisibility(allMet ? View.VISIBLE : View.GONE);
+            
+            // Build Map of pending checklists by templateId
+            Map<Integer, com.kasiz.warehousemobileapp.model.ChecklistResultItem> checklistPendingByTemplate = new HashMap<>();
+            if (item.woLinkedChecklists != null) {
+                for (com.kasiz.warehousemobileapp.model.ChecklistResultItem cl : item.woLinkedChecklists) {
+                    if ("PENDING".equalsIgnoreCase(cl.reviewStatus)) {
+                        checklistPendingByTemplate.put(cl.templateId, cl);
+                    }
+                }
+            }
+            
+            for (WorkOrderItem.ChecklistRequirement req : item.checklistRequirements) {
+                View reqView = getLayoutInflater().inflate(R.layout.item_checklist_requirement, layoutChecklistRequirements, false);
+                TextView textTplName = reqView.findViewById(R.id.textTemplateName);
+                TextView textReqStatus = reqView.findViewById(R.id.textStatus);
+                TextView textDueDate = reqView.findViewById(R.id.textDueDate);
+                View layoutReqActions = reqView.findViewById(R.id.layoutActions);
+                Button buttonExecute = reqView.findViewById(R.id.buttonExecute);
+                Button buttonViewResult = reqView.findViewById(R.id.buttonViewResult);
+                
+                textTplName.setText(req.templateName != null ? req.templateName : ("Mẫu #" + req.templateId));
+                
+                String reqStatus = req.status != null ? req.status.toUpperCase() : "OPEN";
+                boolean done = "FULFILLED".equals(reqStatus) || "WAIVED".equals(reqStatus);
+                boolean pending = checklistPendingByTemplate.containsKey(req.templateId);
+                boolean overdue = "OVERDUE".equals(reqStatus);
+                
+                if (done) {
+                    textReqStatus.setText("Đã duyệt xong");
+                    textReqStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF10B981)); // Green
+                } else if (pending) {
+                    textReqStatus.setText("Chờ duyệt");
+                    textReqStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFF59E0B)); // Orange
+                } else if (overdue) {
+                    textReqStatus.setText("Quá hạn");
+                    textReqStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFFEF4444)); // Red
+                } else {
+                    textReqStatus.setText("Chưa làm");
+                    textReqStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF6B7280)); // Gray
+                }
+                
+                if (req.dueDate != null && !req.dueDate.trim().isEmpty()) {
+                    textDueDate.setVisibility(View.VISIBLE);
+                    textDueDate.setText("Hạn: " + req.dueDate);
+                } else {
+                    textDueDate.setVisibility(View.GONE);
+                }
+                
+                // Set action buttons visibility
+                if (done) {
+                    layoutReqActions.setVisibility(View.GONE);
+                } else if (pending) {
+                    layoutReqActions.setVisibility(View.VISIBLE);
+                    buttonExecute.setVisibility(View.GONE);
+                    buttonViewResult.setVisibility(View.VISIBLE);
+                    
+                    com.kasiz.warehousemobileapp.model.ChecklistResultItem cl = checklistPendingByTemplate.get(req.templateId);
+                    buttonViewResult.setOnClickListener(v -> {
+                        Intent intent = new Intent(WorkOrderDetailActivity.this, ChecklistDetailActivity.class);
+                        intent.putExtra(ChecklistDetailActivity.EXTRA_CHECKLIST_ID, cl.checklistId);
+                        startActivity(intent);
+                    });
+                } else {
+                    if (isRunningOrPaused && canUpdate) {
+                        layoutReqActions.setVisibility(View.VISIBLE);
+                        buttonExecute.setVisibility(View.VISIBLE);
+                        buttonViewResult.setVisibility(View.GONE);
+                        
+                        buttonExecute.setOnClickListener(v -> {
+                            Intent intent = new Intent(WorkOrderDetailActivity.this, ChecklistExecutionActivity.class);
+                            intent.putExtra("extra_asset_id", String.valueOf(item.assetId));
+                            intent.putExtra("extra_wo_id", item.woId);
+                            intent.putExtra("extra_template_id", req.templateId);
+                            startActivity(intent);
+                        });
+                    } else {
+                        layoutReqActions.setVisibility(View.GONE);
+                    }
+                }
+                
+                layoutChecklistRequirements.addView(reqView);
+            }
+        } else {
+            cardChecklistRequirements.setVisibility(View.GONE);
         }
 
         // Render Submitted Checklists
@@ -785,5 +950,96 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
         if ("REJECTED".equals(status)) return 0xFFEF4444; // Red
         if ("REQUEST_CHANGES".equals(status)) return 0xFFF59E0B; // Amber
         return 0xFF64748B;
+    }
+
+    private void startWorkOrderFlow() {
+        new AlertDialog.Builder(this)
+                .setTitle("Yêu cầu dừng máy")
+                .setMessage("Bạn có cần dừng máy (tắt nguồn thiết bị) để thực hiện công việc không?")
+                .setPositiveButton("Có", (dialog, which) -> {
+                    showShutdownReasonDialog();
+                })
+                .setNegativeButton("Không", (dialog, which) -> {
+                    updateStatusWithShutdown(false, null);
+                })
+                .setNeutralButton("Hủy", null)
+                .show();
+    }
+
+    private void showShutdownReasonDialog() {
+        final com.google.android.material.textfield.TextInputLayout textInputLayout = new com.google.android.material.textfield.TextInputLayout(this);
+        textInputLayout.setPadding(30, 20, 30, 20);
+        final com.google.android.material.textfield.TextInputEditText input = new com.google.android.material.textfield.TextInputEditText(this);
+        input.setHint("Nhập lý do dừng máy...");
+        textInputLayout.addView(input);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Lý do dừng máy")
+                .setView(textInputLayout)
+                .setPositiveButton("Bắt đầu", (dialog, which) -> {
+                    String reason = input.getText() != null ? input.getText().toString().trim() : "";
+                    updateStatusWithShutdown(true, reason);
+                })
+                .setNegativeButton("Quay lại", (dialog, which) -> {
+                    startWorkOrderFlow();
+                })
+                .show();
+    }
+
+    private void updateStatusWithShutdown(boolean requiresShutdown, String shutdownReason) {
+        setLoading(true);
+        JsonObject body = new JsonObject();
+        body.addProperty("status", "IN_PROGRESS");
+        body.addProperty("requiresShutdown", requiresShutdown);
+        if (requiresShutdown && shutdownReason != null) {
+            body.addProperty("shutdownReason", shutdownReason);
+        }
+
+        ApiClient.getService(this).changeWorkOrderStatus(woId, body).enqueue(new Callback<ApiEnvelope<WorkOrderItem>>() {
+            @Override
+            public void onResponse(Call<ApiEnvelope<WorkOrderItem>> call, Response<ApiEnvelope<WorkOrderItem>> response) {
+                setLoading(false);
+                if (response.isSuccessful() && response.body() != null && response.body().success) {
+                    Toast.makeText(WorkOrderDetailActivity.this, "Đã bắt đầu công việc", Toast.LENGTH_SHORT).show();
+                    loadDetail();
+                } else {
+                    Toast.makeText(WorkOrderDetailActivity.this, "Bắt đầu công việc thất bại", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiEnvelope<WorkOrderItem>> call, Throwable t) {
+                setLoading(false);
+                Toast.makeText(WorkOrderDetailActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void performPowerAction(String action) {
+        setLoading(true);
+        JsonObject body = new JsonObject();
+        body.addProperty("action", action);
+        if ("SHUTDOWN".equals(action)) {
+            body.addProperty("reason", editPowerShutdownReason.getText() != null ? editPowerShutdownReason.getText().toString().trim() : "");
+        }
+
+        ApiClient.getService(this).setPowerState(woId, body).enqueue(new Callback<ApiEnvelope<WorkOrderItem>>() {
+            @Override
+            public void onResponse(Call<ApiEnvelope<WorkOrderItem>> call, Response<ApiEnvelope<WorkOrderItem>> response) {
+                setLoading(false);
+                if (response.isSuccessful() && response.body() != null && response.body().success) {
+                    Toast.makeText(WorkOrderDetailActivity.this, "Đã cập nhật trạng thái nguồn máy", Toast.LENGTH_SHORT).show();
+                    loadDetail();
+                } else {
+                    Toast.makeText(WorkOrderDetailActivity.this, "Cập nhật nguồn máy thất bại", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiEnvelope<WorkOrderItem>> call, Throwable t) {
+                setLoading(false);
+                Toast.makeText(WorkOrderDetailActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }

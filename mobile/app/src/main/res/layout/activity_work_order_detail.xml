@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -483,6 +483,126 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Machine Power Control Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPowerControl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Điều khiển nguồn máy"
+                    android:textColor="#102030"
+                    android:textStyle="bold"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/textCurrentPowerState"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#4B5563"
+                    android:textSize="14sp"
+                    android:text="Trạng thái hiện tại: --" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/layoutPowerShutdownReason"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:hint="Lý do dừng máy (tùy chọn)"
+                    android:visibility="gone">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editPowerShutdownReason"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/buttonPowerShutdown"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Tắt máy"
+                        app:backgroundTint="#F59E0B"
+                        app:cornerRadius="8dp"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/buttonPowerStartup"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Bật máy"
+                        app:backgroundTint="#10B981"
+                        app:cornerRadius="8dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Checklist Requirements Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardChecklistRequirements"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Checklist bắt buộc thực hiện"
+                    android:textColor="#102030"
+                    android:textStyle="bold"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/textChecklistRequirementsMet"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#10B981"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="✓ Đã hoàn thành tất cả checklist"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/layoutChecklistRequirements"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="10dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Status Change Buttons -->
         <LinearLayout
             android:id="@+id/layoutActions"
@@ -732,4 +852,4 @@
             android:layout_gravity="center"
             android:visibility="gone" />
     </LinearLayout>
-</ScrollView>
+</androidx.core.widget.NestedScrollView>

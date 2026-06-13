@@ -111,6 +111,12 @@ public class DashboardActivity extends AppCompatActivity {
         buttonNotifications.setOnClickListener(v -> startActivity(new Intent(this, NotificationCenterActivity.class)));
         buttonLogout.setOnClickListener(v -> logout());
 
+        // Schedules button (optional — only shows if view exists in layout)
+        Button buttonSchedules = findViewById(R.id.buttonSchedules);
+        if (buttonSchedules != null) {
+            buttonSchedules.setOnClickListener(v -> openModuleList(ModuleListActivity.MODULE_SCHEDULES, "Lịch bảo trì", "Danh sách lịch bảo trì định kỳ"));
+        }
+
         loadData();
     }
 

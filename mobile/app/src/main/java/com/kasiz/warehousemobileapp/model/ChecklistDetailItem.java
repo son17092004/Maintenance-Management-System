@@ -44,6 +44,12 @@ public class ChecklistDetailItem {
     @SerializedName("locationName")
     public String locationName;
 
+    @SerializedName("reviewerName")
+    public String reviewerName;
+
+    @SerializedName("reviewedAt")
+    public String reviewedAt;
+
     @SerializedName("details")
     public List<ChecklistDetailRow> details;
 }

@@ -22,9 +22,19 @@ import retrofit2.Response;
 
 public class ProfileActivity extends AppCompatActivity {
 
+    private TextView textAvatar;
     private TextView textName;
-    private TextView textMeta;
-    private TextView textSummary;
+    private TextView textRole;
+    private TextView textUsername;
+    private TextView textEmail;
+    private TextView textPhone;
+    private TextView textDepartment;
+    private TextView textPosition;
+    private TextView textCraftLevel;
+    private View cardWorkStatus;
+    private TextView textAvailability;
+    private TextView textWorkHeadline;
+    private TextView textWorkDetail;
     private ProgressBar progressBar;
 
     @Override
@@ -32,17 +42,32 @@ public class ProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
 
-        textName = findViewById(R.id.textName);
-        textMeta = findViewById(R.id.textMeta);
-        textSummary = findViewById(R.id.textSummary);
-        progressBar = findViewById(R.id.progressBar);
-        Button buttonRefresh = findViewById(R.id.buttonRefresh);
+        textAvatar      = findViewById(R.id.textAvatar);
+        textName        = findViewById(R.id.textName);
+        textRole        = findViewById(R.id.textRole);
+        textUsername    = findViewById(R.id.textUsername);
+        textEmail       = findViewById(R.id.textEmail);
+        textPhone       = findViewById(R.id.textPhone);
+        textDepartment  = findViewById(R.id.textDepartment);
+        textPosition    = findViewById(R.id.textPosition);
+        textCraftLevel  = findViewById(R.id.textCraftLevel);
+        cardWorkStatus  = findViewById(R.id.cardWorkStatus);
+        textAvailability  = findViewById(R.id.textAvailability);
+        textWorkHeadline  = findViewById(R.id.textWorkHeadline);
+        textWorkDetail    = findViewById(R.id.textWorkDetail);
+        progressBar     = findViewById(R.id.progressBar);
+
+        Button buttonRefresh  = findViewById(R.id.buttonRefresh);
         Button buttonSettings = findViewById(R.id.buttonSettings);
-        Button buttonLogout = findViewById(R.id.buttonLogout);
+        Button buttonLogout   = findViewById(R.id.buttonLogout);
 
         buttonRefresh.setOnClickListener(v -> loadMe());
         buttonSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         buttonLogout.setOnClickListener(v -> logout());
+
+        // Try show cached profile immediately while loading
+        MeProfile cached = SessionManager.getInstance(this).getCachedProfile();
+        if (cached != null) bindProfile(cached);
 
         loadMe();
     }
@@ -54,13 +79,8 @@ public class ProfileActivity extends AppCompatActivity {
             public void onResponse(Call<ApiEnvelope<MeProfile>> call, Response<ApiEnvelope<MeProfile>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
                     MeProfile profile = response.body().data;
-                    textName.setText(safe(profile.fullName));
-                    textMeta.setText(join(profile.username, profile.email, profile.positionName, profile.departmentName));
-                    if (profile.fieldWorkSummary != null) {
-                        textSummary.setText(join(profile.fieldWorkSummary.availability, profile.fieldWorkSummary.headline, profile.fieldWorkSummary.detail));
-                    } else {
-                        textSummary.setText(join(profile.craftLevel, profile.specialty));
-                    }
+                    SessionManager.getInstance(ProfileActivity.this).saveProfile(profile);
+                    bindProfile(profile);
                 } else {
                     Toast.makeText(ProfileActivity.this, "Không tải được hồ sơ", Toast.LENGTH_SHORT).show();
                 }
@@ -73,6 +93,49 @@ public class ProfileActivity extends AppCompatActivity {
                 setLoading(false);
             }
         });
+    }
+
+    private void bindProfile(MeProfile profile) {
+        // Avatar: first letter of full name
+        String name = safe(profile.fullName);
+        textAvatar.setText(name.equals("--") ? "?" : String.valueOf(name.charAt(0)).toUpperCase());
+        textName.setText(name);
+
+        // Role badge text
+        String roleText = safe(profile.positionName);
+        if (!roleText.equals("--") && profile.craftLevel != null && !profile.craftLevel.isEmpty()) {
+            roleText += " · Bậc " + profile.craftLevel;
+        }
+        textRole.setText(roleText);
+
+        textUsername.setText(safe(profile.username));
+        textEmail.setText(safe(profile.email));
+        textPhone.setText(safe(profile.phone));
+        textDepartment.setText(safe(profile.departmentName));
+        textPosition.setText(safe(profile.positionName));
+
+        // Craft level + specialty
+        String craft = safe(profile.craftLevel);
+        String specialty = safe(profile.specialty);
+        if ("--".equals(craft) && "--".equals(specialty)) {
+            textCraftLevel.setText("--");
+        } else if ("--".equals(craft)) {
+            textCraftLevel.setText(specialty);
+        } else if ("--".equals(specialty)) {
+            textCraftLevel.setText("Bậc " + craft);
+        } else {
+            textCraftLevel.setText("Bậc " + craft + " · " + specialty);
+        }
+
+        // Work status section
+        if (profile.fieldWorkSummary != null) {
+            cardWorkStatus.setVisibility(View.VISIBLE);
+            textAvailability.setText(safe(profile.fieldWorkSummary.availability));
+            textWorkHeadline.setText(safe(profile.fieldWorkSummary.headline));
+            textWorkDetail.setText(safe(profile.fieldWorkSummary.detail));
+        } else {
+            cardWorkStatus.setVisibility(View.GONE);
+        }
     }
 
     private void logout() {
@@ -102,15 +165,5 @@ public class ProfileActivity extends AppCompatActivity {
 
     private String safe(String value) {
         return value == null || value.trim().isEmpty() ? "--" : value;
-    }
-
-    private String join(String... values) {
-        StringBuilder sb = new StringBuilder();
-        for (String value : values) {
-            if (value == null || value.trim().isEmpty()) continue;
-            if (sb.length() > 0) sb.append(" • ");
-            sb.append(value.trim());
-        }
-        return sb.length() == 0 ? "--" : sb.toString();
     }
 }

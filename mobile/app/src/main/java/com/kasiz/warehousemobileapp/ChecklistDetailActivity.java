@@ -86,11 +86,16 @@ public class ChecklistDetailActivity extends AppCompatActivity {
                     ChecklistDetailItem item = response.body().data;
                     
                     textName.setText(safe(item.assetName));
+                    String reviewerInfo = null;
+                    if (item.reviewerName != null && !item.reviewerName.trim().isEmpty()) {
+                        reviewerInfo = "Người duyệt: " + item.reviewerName.trim() + (item.reviewedAt != null ? " (" + formatCheckTime(item.reviewedAt) + ")" : "");
+                    }
                     textMeta.setText(join(
                             item.templateName,
                             item.locationName != null ? "Vị trí: " + item.locationName : null,
                             item.checkerName != null ? "Người kiểm tra: " + item.checkerName : null,
-                            formatCheckTime(item.checkTime)
+                            "Thời gian kiểm tra: " + formatCheckTime(item.checkTime),
+                            reviewerInfo
                     ));
                     
                     setStatusBadge(badgeOverallStatus, item.overallStatus, true);
@@ -178,21 +183,27 @@ public class ChecklistDetailActivity extends AppCompatActivity {
             return;
         }
         imageView.setVisibility(View.VISIBLE);
-        String baseUrl = SessionManager.getInstance(this).getBaseUrl();
-        String apiOrigin = baseUrl.replaceAll("/api/?$", "");
-        String s = relativePath.replace("\\", "/");
-        String path;
-        int u = s.toLowerCase().indexOf("/uploads/");
-        if (u >= 0) {
-            path = s.substring(u + 1);
-        } else if (s.startsWith("uploads/")) {
-            path = s;
+        
+        final String fullUrl;
+        if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+            fullUrl = relativePath;
         } else {
-            String[] parts = s.split("/");
-            String filename = parts[parts.length - 1];
-            path = "uploads/photos/" + filename;
+            String baseUrl = SessionManager.getInstance(this).getBaseUrl();
+            String apiOrigin = baseUrl.replaceAll("/api/?$", "");
+            String s = relativePath.replace("\\", "/");
+            String path;
+            int u = s.toLowerCase().indexOf("/uploads/");
+            if (u >= 0) {
+                path = s.substring(u + 1);
+            } else if (s.startsWith("uploads/")) {
+                path = s;
+            } else {
+                String[] parts = s.split("/");
+                String filename = parts[parts.length - 1];
+                path = "uploads/photos/" + filename;
+            }
+            fullUrl = apiOrigin + "/" + path;
         }
-        String fullUrl = apiOrigin + "/" + path;
 
         new Thread(() -> {
             try {
@@ -240,7 +251,7 @@ public class ChecklistDetailActivity extends AppCompatActivity {
         StringBuilder sb = new StringBuilder();
         for (String value : values) {
             if (value == null || value.trim().isEmpty()) continue;
-            if (sb.length() > 0) sb.append(" • ");
+            if (sb.length() > 0) sb.append(" | ");
             sb.append(value.trim());
         }
         return sb.length() == 0 ? "--" : sb.toString();

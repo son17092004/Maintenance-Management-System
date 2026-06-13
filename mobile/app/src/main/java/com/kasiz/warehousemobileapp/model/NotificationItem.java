@@ -10,8 +10,12 @@ public class NotificationItem {
     public String message;
 
     @SerializedName("isRead")
-    public boolean isRead;
+    public Integer isRead;
 
     @SerializedName("createdAt")
     public String createdAt;
+
+    public boolean isRead() {
+        return isRead != null && isRead == 1;
+    }
 }

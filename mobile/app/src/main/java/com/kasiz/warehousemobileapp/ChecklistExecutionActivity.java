@@ -19,6 +19,9 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Spinner;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -62,12 +65,15 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
     private LinearLayout layoutQuestionsContainer;
     private View progressBar;
     private Button buttonSubmit, buttonPickEvidencePhoto;
+    private Spinner spinnerTemplates;
 
     private Gson gson = new Gson();
     private JsonObject qrInfo;
     private double lastReadingValue = 0.0;
     private int templateId = 0;
     private JsonArray templateItems = new JsonArray();
+    private JsonArray templatesForSubmit = new JsonArray();
+    private int templateIdFromIntent = 0;
 
     // Photo selection tracking
     private int currentPhotoTargetId = -1; // -1 for evidence photo, or question itemId
@@ -87,6 +93,7 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
         if (woIdRaw > 0) {
             woId = woIdRaw;
         }
+        templateIdFromIntent = getIntent().getIntExtra("extra_template_id", 0);
 
         if (TextUtils.isEmpty(assetId)) {
             Toast.makeText(this, "Không tìm thấy thông tin tài sản", Toast.LENGTH_SHORT).show();
@@ -120,6 +127,7 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
 
         buttonPickEvidencePhoto = findViewById(R.id.buttonPickEvidencePhoto);
         buttonSubmit = findViewById(R.id.buttonSubmit);
+        spinnerTemplates = findViewById(R.id.spinnerTemplates);
 
         buttonPickEvidencePhoto.setOnClickListener(v -> {
             currentPhotoTargetId = -1;
@@ -179,18 +187,90 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
             editReadingValue.setHint("Tối thiểu " + lastReadingValue + " giờ");
         }
 
-        JsonObject checklistTemplate = data.getAsJsonObject("checklistTemplate");
-        if (checklistTemplate != null) {
-            templateId = checklistTemplate.get("templateId").getAsInt();
-            textTemplateName.setText("Mẫu: " + getStr(checklistTemplate, "templateName"));
-
-            if (checklistTemplate.has("items")) {
-                templateItems = checklistTemplate.getAsJsonArray("items");
-                renderQuestions(templateItems);
+        JsonArray allTemplates = data.getAsJsonArray("checklistTemplates");
+        templatesForSubmit = new JsonArray();
+        if (allTemplates != null) {
+            JsonObject woChecklist = data.getAsJsonObject("woChecklist");
+            JsonArray openTemplateIds = null;
+            if (woChecklist != null && woChecklist.has("openTemplateIds")) {
+                openTemplateIds = woChecklist.getAsJsonArray("openTemplateIds");
             }
+            
+            if (woId != null && openTemplateIds != null && openTemplateIds.size() > 0) {
+                for (int i = 0; i < allTemplates.size(); i++) {
+                    JsonObject tpl = allTemplates.get(i).getAsJsonObject();
+                    int tplId = tpl.get("templateId").getAsInt();
+                    boolean isOpen = false;
+                    for (int j = 0; j < openTemplateIds.size(); j++) {
+                        if (openTemplateIds.get(j).getAsInt() == tplId) {
+                            isOpen = true;
+                            break;
+                        }
+                    }
+                    if (isOpen) {
+                        templatesForSubmit.add(tpl);
+                    }
+                }
+            } else {
+                templatesForSubmit = allTemplates;
+            }
+        }
+
+        if (templatesForSubmit.size() > 1) {
+            spinnerTemplates.setVisibility(View.VISIBLE);
+            textTemplateName.setText("Mẫu checklist áp dụng:");
+            
+            List<String> templateNames = new ArrayList<>();
+            for (int i = 0; i < templatesForSubmit.size(); i++) {
+                templateNames.add(getStr(templatesForSubmit.get(i).getAsJsonObject(), "templateName"));
+            }
+            
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, templateNames);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerTemplates.setAdapter(adapter);
+            
+            int selectedIndex = 0;
+            if (templateIdFromIntent > 0) {
+                for (int i = 0; i < templatesForSubmit.size(); i++) {
+                    if (templatesForSubmit.get(i).getAsJsonObject().get("templateId").getAsInt() == templateIdFromIntent) {
+                        selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            spinnerTemplates.setSelection(selectedIndex);
+            
+            spinnerTemplates.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    JsonObject selected = templatesForSubmit.get(position).getAsJsonObject();
+                    templateId = selected.get("templateId").getAsInt();
+                    if (selected.has("items")) {
+                        templateItems = selected.getAsJsonArray("items");
+                        renderQuestions(templateItems);
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                }
+            });
         } else {
-            textTemplateName.setText("Không có mẫu checklist hoạt động cho loại thiết bị này");
-            buttonSubmit.setEnabled(false);
+            spinnerTemplates.setVisibility(View.GONE);
+            JsonObject checklistTemplate = data.getAsJsonObject("checklistTemplate");
+            if (checklistTemplate != null) {
+                templateId = checklistTemplate.get("templateId").getAsInt();
+                textTemplateName.setText("Mẫu: " + getStr(checklistTemplate, "templateName"));
+
+                if (checklistTemplate.has("items")) {
+                    templateItems = checklistTemplate.getAsJsonArray("items");
+                    renderQuestions(templateItems);
+                }
+            } else {
+                textTemplateName.setText("Không có mẫu checklist hoạt động cho loại thiết bị này");
+                buttonSubmit.setEnabled(false);
+            }
         }
     }
 

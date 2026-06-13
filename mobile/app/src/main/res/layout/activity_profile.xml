@@ -11,6 +11,7 @@
         android:orientation="vertical"
         android:padding="20dp">
 
+        <!-- Header Card: Avatar + Name + Role -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,29 +22,38 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="20dp"
+                android:gravity="center">
+
+                <!-- Avatar Circle -->
+                <TextView
+                    android:id="@+id/textAvatar"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:gravity="center"
+                    android:textColor="#FFFFFF"
+                    android:textSize="32sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_status_badge"
+                    android:text="?" />
 
                 <TextView
                     android:id="@+id/textName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#102030"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/textMeta"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="#5A697A" />
-
-                <TextView
-                    android:id="@+id/textSummary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:textColor="#102030"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/textRole"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
                     android:textColor="#0F766E"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <ProgressBar
@@ -53,40 +63,213 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:visibility="gone" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/buttonRefresh"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Làm mới"
-                        app:cornerRadius="16dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/buttonSettings"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:text="Server"
-                        app:cornerRadius="16dp" />
-                </LinearLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonLogout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="Đăng xuất"
-                    app:backgroundTint="#D95C5C"
-                    app:cornerRadius="16dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- Info Detail Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Thông tin cá nhân"
+                    android:textColor="#102030"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="14dp" />
+
+                <!-- Username -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tên đăng nhập"
+                    android:textColor="#7B8794"
+                    android:textSize="12sp" />
+                <TextView
+                    android:id="@+id/textUsername"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="#1C2430"
+                    android:textSize="15sp" />
+
+                <!-- Email -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Email"
+                    android:textColor="#7B8794"
+                    android:textSize="12sp" />
+                <TextView
+                    android:id="@+id/textEmail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="#1C2430"
+                    android:textSize="15sp" />
+
+                <!-- Phone -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Số điện thoại"
+                    android:textColor="#7B8794"
+                    android:textSize="12sp" />
+                <TextView
+                    android:id="@+id/textPhone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="#1C2430"
+                    android:textSize="15sp" />
+
+                <!-- Department -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Phòng / Ban"
+                    android:textColor="#7B8794"
+                    android:textSize="12sp" />
+                <TextView
+                    android:id="@+id/textDepartment"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="#1C2430"
+                    android:textSize="15sp" />
+
+                <!-- Position -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Chức vụ"
+                    android:textColor="#7B8794"
+                    android:textSize="12sp" />
+                <TextView
+                    android:id="@+id/textPosition"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="#1C2430"
+                    android:textSize="15sp" />
+
+                <!-- Craft Level -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bậc thợ / Chuyên môn"
+                    android:textColor="#7B8794"
+                    android:textSize="12sp" />
+                <TextView
+                    android:id="@+id/textCraftLevel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:textColor="#1C2430"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Work Status Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardWorkStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Trạng thái công việc"
+                    android:textColor="#102030"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="14dp" />
+
+                <TextView
+                    android:id="@+id/textAvailability"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#0F766E"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/textWorkHeadline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="#1C2430"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/textWorkDetail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="#7B8794"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Actions -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonRefresh"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Làm mới"
+                app:cornerRadius="16dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSettings"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="Server"
+                app:cornerRadius="16dp" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonLogout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Đăng xuất"
+            app:backgroundTint="#D95C5C"
+            app:cornerRadius="16dp" />
     </LinearLayout>
 </ScrollView>

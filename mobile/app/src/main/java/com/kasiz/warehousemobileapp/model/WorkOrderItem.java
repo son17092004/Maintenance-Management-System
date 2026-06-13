@@ -61,6 +61,9 @@ public class WorkOrderItem {
     @SerializedName("powerState")
     public String powerState;
 
+    @SerializedName("counterBaselineResetAt")
+    public String counterBaselineResetAt;
+
     @SerializedName("createdAt")
     public String createdAt;
 
@@ -75,6 +78,29 @@ public class WorkOrderItem {
 
     @SerializedName("recentChecklists")
     public List<ChecklistResultItem> recentChecklists;
+
+    @SerializedName("checklistRequirements")
+    public List<ChecklistRequirement> checklistRequirements;
+
+    @SerializedName("checklistRequirementsMet")
+    public Boolean checklistRequirementsMet;
+
+    public static class ChecklistRequirement {
+        @SerializedName("templateId")
+        public int templateId;
+
+        @SerializedName("templateName")
+        public String templateName;
+
+        @SerializedName("status")
+        public String status;
+
+        @SerializedName("dueDate")
+        public String dueDate;
+
+        @SerializedName("slotMissing")
+        public boolean slotMissing;
+    }
 
     public static class Assignment {
         @SerializedName("employeeId")

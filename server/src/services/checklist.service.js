@@ -24,6 +24,7 @@
  *   checkerId, mine=1, checkFrom/checkTo (CheckTime range), q (tìm tên TS / Notes / ID).
  */
 import { createError } from "../utils/createError.js";
+import { getPagination } from "../utils/paginate.js";
 import * as templateModel from "../models/checklistTemplate.model.js";
 import * as resultModel from "../models/checklistResult.model.js";
 import * as assetModel from "../models/asset.model.js";
@@ -870,9 +871,11 @@ export async function getResultById(id, viewer = {}) {
  * KTV hiện trường (level ≤ 1): luôn bị giới hạn — chỉ phiếu APPROVED + phiếu của mình.
  */
 export async function getResults(
-  {
-    page = 1,
-    limit = 20,
+  query = {},
+  viewer = {},
+) {
+  const { page, limit, offset } = getPagination(query);
+  const {
     checkerId,
     assetId,
     reviewStatus,
@@ -881,10 +884,7 @@ export async function getResults(
     checkFrom,
     checkTo,
     q,
-  } = {},
-  viewer = {},
-) {
-  const offset = (page - 1) * limit;
+  } = query;
   const { getPool } = await import("../config/database.js");
   const conditions = [];
   const params = [];

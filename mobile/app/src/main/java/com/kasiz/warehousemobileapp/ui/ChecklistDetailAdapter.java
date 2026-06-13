@@ -58,7 +58,7 @@ public class ChecklistDetailAdapter extends RecyclerView.Adapter<ChecklistDetail
             holder.textAnswerValue.setText(row.answerValue);
         }
 
-        if (row.isOK) {
+        if (row.isOK()) {
             holder.textResultBadge.setText("ĐẠT (OK)");
             holder.textResultBadge.setTextColor(Color.parseColor("#0F766E"));
             holder.textResultBadge.setBackgroundColor(Color.parseColor("#E6F4F1"));
@@ -84,21 +84,26 @@ public class ChecklistDetailAdapter extends RecyclerView.Adapter<ChecklistDetail
             return;
         }
         imageView.setVisibility(View.VISIBLE);
-        String baseUrl = SessionManager.getInstance(context).getBaseUrl();
-        String apiOrigin = baseUrl.replaceAll("/api/?$", "");
-        String s = relativePath.replace("\\", "/");
-        String path;
-        int u = s.toLowerCase().indexOf("/uploads/");
-        if (u >= 0) {
-            path = s.substring(u + 1);
-        } else if (s.startsWith("uploads/")) {
-            path = s;
+        final String fullUrl;
+        if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+            fullUrl = relativePath;
         } else {
-            String[] parts = s.split("/");
-            String filename = parts[parts.length - 1];
-            path = "uploads/photos/" + filename;
+            String baseUrl = SessionManager.getInstance(context).getBaseUrl();
+            String apiOrigin = baseUrl.replaceAll("/api/?$", "");
+            String s = relativePath.replace("\\", "/");
+            String path;
+            int u = s.toLowerCase().indexOf("/uploads/");
+            if (u >= 0) {
+                path = s.substring(u + 1);
+            } else if (s.startsWith("uploads/")) {
+                path = s;
+            } else {
+                String[] parts = s.split("/");
+                String filename = parts[parts.length - 1];
+                path = "uploads/photos/" + filename;
+            }
+            fullUrl = apiOrigin + "/" + path;
         }
-        String fullUrl = apiOrigin + "/" + path;
 
         new Thread(() -> {
             try {

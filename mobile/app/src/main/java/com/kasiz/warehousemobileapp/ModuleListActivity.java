@@ -38,12 +38,14 @@ public class ModuleListActivity extends AppCompatActivity {
     public static final String MODULE_ASSETS = "assets";
     public static final String MODULE_CHECKLISTS = "checklists";
     public static final String MODULE_WORK_ORDERS = "work_orders";
+    public static final String MODULE_SCHEDULES = "schedules";
 
     private TextView textTitle;
     private TextView textSubtitle;
     private TextView textEmpty;
     private ProgressBar progressBar;
     private ListRowAdapter adapter;
+    private RecyclerView recyclerView;
     private String module;
 
     private View layoutFilters;
@@ -59,6 +61,14 @@ public class ModuleListActivity extends AppCompatActivity {
     private String selectedChecklistSearch = null;
     private String selectedOverallStatus = null;
     private String selectedReviewStatus = null;
+
+    // Pagination
+    private int currentPage = 1;
+    private static final int PAGE_SIZE = 15;
+    private View layoutPagination;
+    private Button buttonPrevPage;
+    private Button buttonNextPage;
+    private TextView textPageIndicator;
 
     private static final String[] PRIORITIES = {"Mọi ưu tiên", "EMERGENCY", "HIGH", "MEDIUM", "LOW"};
     private static final String[] PRIORITY_VALUES = {null, "EMERGENCY", "HIGH", "MEDIUM", "LOW"};
@@ -84,7 +94,25 @@ public class ModuleListActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         Button buttonRefresh = findViewById(R.id.buttonRefresh);
         Button buttonScanQr = findViewById(R.id.buttonScanQr);
-        RecyclerView recyclerView = findViewById(R.id.recyclerList);
+        recyclerView = findViewById(R.id.recyclerList);
+
+        // Pagination Views
+        layoutPagination = findViewById(R.id.layoutPagination);
+        buttonPrevPage = findViewById(R.id.buttonPrevPage);
+        buttonNextPage = findViewById(R.id.buttonNextPage);
+        textPageIndicator = findViewById(R.id.textPageIndicator);
+
+        buttonPrevPage.setOnClickListener(v -> {
+            if (currentPage > 1) {
+                currentPage--;
+                loadList();
+            }
+        });
+
+        buttonNextPage.setOnClickListener(v -> {
+            currentPage++;
+            loadList();
+        });
 
         if (MODULE_CHECKLISTS.equals(module)) {
             buttonScanQr.setVisibility(View.VISIBLE);
@@ -101,7 +129,10 @@ public class ModuleListActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-        buttonRefresh.setOnClickListener(v -> loadList());
+        buttonRefresh.setOnClickListener(v -> {
+            currentPage = 1;
+            loadList();
+        });
 
         layoutFilters = findViewById(R.id.layoutFilters);
         chipGroupStatus = findViewById(R.id.chipGroupStatus);
@@ -111,6 +142,7 @@ public class ModuleListActivity extends AppCompatActivity {
             layoutFilters.setVisibility(View.VISIBLE);
             
             chipGroupStatus.setOnCheckedChangeListener((group, checkedId) -> {
+                currentPage = 1;
                 if (checkedId == R.id.chipWaiting) {
                     selectedStatus = "WAITING";
                 } else if (checkedId == R.id.chipRunning) {
@@ -134,6 +166,7 @@ public class ModuleListActivity extends AppCompatActivity {
             spinnerPriority.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                    currentPage = 1;
                     selectedPriority = PRIORITY_VALUES[position];
                     loadList();
                 }
@@ -159,6 +192,7 @@ public class ModuleListActivity extends AppCompatActivity {
                 public void onTextChanged(CharSequence s, int start, int before, int count) {}
                 @Override
                 public void afterTextChanged(android.text.Editable s) {
+                    currentPage = 1;
                     selectedChecklistSearch = s.toString().trim();
                     if (selectedChecklistSearch.isEmpty()) {
                         selectedChecklistSearch = null;
@@ -174,6 +208,7 @@ public class ModuleListActivity extends AppCompatActivity {
             spinnerOverallStatus.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                    currentPage = 1;
                     selectedOverallStatus = OVERALL_STATUS_VALUES[position];
                     loadList();
                 }
@@ -188,6 +223,7 @@ public class ModuleListActivity extends AppCompatActivity {
             spinnerReviewStatus.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                    currentPage = 1;
                     selectedReviewStatus = REVIEW_STATUS_VALUES[position];
                     loadList();
                 }
@@ -213,35 +249,46 @@ public class ModuleListActivity extends AppCompatActivity {
             loadWorkOrders();
             return;
         }
+        if (MODULE_SCHEDULES.equals(module)) {
+            loadSchedules();
+            return;
+        }
         setLoading(false);
         Toast.makeText(this, "Module không hợp lệ", Toast.LENGTH_SHORT).show();
     }
 
     private void loadWorkOrders() {
-        ApiClient.getService(this).workOrders(20, 0, selectedStatus, selectedPriority).enqueue(new Callback<ApiEnvelope<PaginatedPayload<WorkOrderItem>>>() {
+        int offset = (currentPage - 1) * PAGE_SIZE;
+        ApiClient.getService(this).workOrders(PAGE_SIZE, offset, selectedStatus, selectedPriority).enqueue(new Callback<ApiEnvelope<PaginatedPayload<WorkOrderItem>>>() {
             @Override
             public void onResponse(Call<ApiEnvelope<PaginatedPayload<WorkOrderItem>>> call, Response<ApiEnvelope<PaginatedPayload<WorkOrderItem>>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
-                    List<WorkOrderItem> items = response.body().data.items == null ? new ArrayList<>() : response.body().data.items;
+                    PaginatedPayload<WorkOrderItem> data = response.body().data;
+                    List<WorkOrderItem> items = data.items == null ? new ArrayList<>() : data.items;
                     List<ListRow> rows = new ArrayList<>();
                     for (WorkOrderItem item : items) {
-                        String titleText = safe(item.description);
-                        if (titleText.length() > 50) {
-                            titleText = titleText.substring(0, 47) + "...";
+                        String primaryText = (item.title != null && !item.title.isEmpty())
+                                ? item.title
+                                : safe(item.description);
+                        if (primaryText.length() > 55) {
+                            primaryText = primaryText.substring(0, 52) + "...";
                         }
                         rows.add(new ListRow(
                                 item.woId,
                                 MODULE_WORK_ORDERS,
-                                "WO-" + String.format("%04d", item.woId) + ": " + titleText,
-                                joinNonEmpty(item.assetName, "Độ ưu tiên: " + safe(item.priority)),
+                                "WO-" + String.format("%04d", item.woId) + ": " + primaryText,
+                                joinNonEmpty(item.assetName, "Ưu tiên: " + safe(item.priority)),
                                 safe(item.status),
                                 joinNonEmpty("Nguồn: " + safe(item.woSource), "Ngày lên lịch: " + safe(item.plannedDate))
                         ));
                     }
                     adapter.update(rows);
+                    recyclerView.scrollToPosition(0);
                     textEmpty.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+                    updatePaginationControls(data.total);
                 } else {
                     showEmpty();
+                    updatePaginationControls(0);
                 }
                 setLoading(false);
             }
@@ -249,17 +296,20 @@ public class ModuleListActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<ApiEnvelope<PaginatedPayload<WorkOrderItem>>> call, Throwable t) {
                 showEmpty();
+                updatePaginationControls(0);
                 setLoading(false);
             }
         });
     }
 
     private void loadAssets() {
-        ApiClient.getService(this).assets(20, 0, null, null, null, null, null).enqueue(new Callback<ApiEnvelope<PaginatedPayload<AssetItem>>>() {
+        int offset = (currentPage - 1) * PAGE_SIZE;
+        ApiClient.getService(this).assets(PAGE_SIZE, offset, null, null, null, null, null).enqueue(new Callback<ApiEnvelope<PaginatedPayload<AssetItem>>>() {
             @Override
             public void onResponse(Call<ApiEnvelope<PaginatedPayload<AssetItem>>> call, Response<ApiEnvelope<PaginatedPayload<AssetItem>>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
-                    List<AssetItem> items = response.body().data.items == null ? new ArrayList<>() : response.body().data.items;
+                    PaginatedPayload<AssetItem> data = response.body().data;
+                    List<AssetItem> items = data.items == null ? new ArrayList<>() : data.items;
                     List<ListRow> rows = new ArrayList<>();
                     for (AssetItem item : items) {
                         rows.add(new ListRow(
@@ -272,9 +322,12 @@ public class ModuleListActivity extends AppCompatActivity {
                         ));
                     }
                     adapter.update(rows);
+                    recyclerView.scrollToPosition(0);
                     textEmpty.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+                    updatePaginationControls(data.total);
                 } else {
                     showEmpty();
+                    updatePaginationControls(0);
                 }
                 setLoading(false);
             }
@@ -282,32 +335,63 @@ public class ModuleListActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<ApiEnvelope<PaginatedPayload<AssetItem>>> call, Throwable t) {
                 showEmpty();
+                updatePaginationControls(0);
                 setLoading(false);
             }
         });
     }
 
     private void loadChecklists() {
-        ApiClient.getService(this).checklistResults(20, 0, selectedChecklistSearch, selectedOverallStatus, selectedReviewStatus).enqueue(new Callback<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>>() {
+        int offset = (currentPage - 1) * PAGE_SIZE;
+        ApiClient.getService(this).checklistResults(PAGE_SIZE, offset, selectedChecklistSearch, selectedOverallStatus, selectedReviewStatus).enqueue(new Callback<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>>() {
             @Override
             public void onResponse(Call<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>> call, Response<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
-                    List<ChecklistResultItem> items = response.body().data.items == null ? new ArrayList<>() : response.body().data.items;
+                    PaginatedPayload<ChecklistResultItem> data = response.body().data;
+                    List<ChecklistResultItem> items = data.items == null ? new ArrayList<>() : data.items;
                     List<ListRow> rows = new ArrayList<>();
                     for (ChecklistResultItem item : items) {
+                        // Formatting checkTime
+                        String rawTime = safe(item.checkTime);
+                        String formattedTime = rawTime;
+                        if (rawTime.contains("T")) {
+                            try {
+                                String datePart = rawTime.split("T")[0]; // 2026-05-21
+                                String timePart = rawTime.split("T")[1].substring(0, 5); // 18:51
+                                String[] dateParts = datePart.split("-");
+                                formattedTime = dateParts[2] + "/" + dateParts[1] + "/" + dateParts[0] + " " + timePart;
+                            } catch (Exception e) {
+                                // fallback
+                            }
+                        }
+
+                        // overallStatus & reviewStatus badge
+                        String overall = safe(item.overallStatus).toUpperCase();
+                        String review = safe(item.reviewStatus).toUpperCase();
+                        String badgeText = overall + " | " + review;
+
+                        // detail text: Thời gian & Ghi chú
+                        String notesPart = (item.notes != null && !item.notes.trim().isEmpty())
+                                ? "\nGhi chú: " + item.notes
+                                : "";
+                        String detailText = "Thời gian: " + formattedTime + notesPart;
+
                         rows.add(new ListRow(
                                 item.checklistId,
                                 MODULE_CHECKLISTS,
                                 safe(item.assetName),
-                                joinNonEmpty(item.templateName, item.checkerName),
-                                joinNonEmpty(item.overallStatus, item.reviewStatus),
-                                safe(item.checkTime)
+                                joinNonEmpty(item.templateName, "Người kiểm tra: " + safe(item.checkerName)),
+                                badgeText,
+                                detailText
                         ));
                     }
                     adapter.update(rows);
+                    recyclerView.scrollToPosition(0);
                     textEmpty.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+                    updatePaginationControls(data.total);
                 } else {
                     showEmpty();
+                    updatePaginationControls(0);
                 }
                 setLoading(false);
             }
@@ -315,6 +399,7 @@ public class ModuleListActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<ApiEnvelope<PaginatedPayload<ChecklistResultItem>>> call, Throwable t) {
                 showEmpty();
+                updatePaginationControls(0);
                 setLoading(false);
             }
         });
@@ -323,6 +408,129 @@ public class ModuleListActivity extends AppCompatActivity {
     private void showEmpty() {
         adapter.update(new ArrayList<>());
         textEmpty.setVisibility(View.VISIBLE);
+    }
+
+    private void loadSchedules() {
+        int offset = (currentPage - 1) * PAGE_SIZE;
+        ApiClient.getService(this).maintenanceSchedules(PAGE_SIZE, offset, null).enqueue(new Callback<ApiEnvelope<PaginatedPayload<com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem>>>() {
+            @Override
+            public void onResponse(Call<ApiEnvelope<PaginatedPayload<com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem>>> call,
+                                   Response<ApiEnvelope<PaginatedPayload<com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem>>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
+                    PaginatedPayload<com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem> data = response.body().data;
+                    List<com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem> items = data.items == null ? new ArrayList<>() : data.items;
+                    List<ListRow> rows = new ArrayList<>();
+                    for (com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem item : items) {
+                        // Translate Frequency Unit
+                        String freqUnit = safe(item.frequencyUnit).toUpperCase();
+                        if ("DAYS".equals(freqUnit)) freqUnit = "ngày";
+                        else if ("WEEKS".equals(freqUnit)) freqUnit = "tuần";
+                        else if ("MONTHS".equals(freqUnit)) freqUnit = "tháng";
+                        else if ("YEARS".equals(freqUnit)) freqUnit = "năm";
+                        else if ("HOURS".equals(freqUnit)) freqUnit = "giờ";
+                        else freqUnit = freqUnit.toLowerCase();
+
+                        String freq = "";
+                        if (item.frequencyValue != null) {
+                            freq = item.frequencyValue + " " + freqUnit;
+                        } else {
+                            freq = freqUnit;
+                        }
+
+                        // Translate Status to match web STATUS_LABEL exactly
+                        String rawStatus = safe(item.status).toUpperCase();
+                        String statusLabel = rawStatus;
+                        if ("DRAFT".equals(rawStatus)) {
+                            statusLabel = "Bản nháp";
+                        } else if ("PENDING_APPROVAL".equals(rawStatus)) {
+                            statusLabel = "Chờ duyệt";
+                        } else if ("PENDING".equals(rawStatus)) {
+                            statusLabel = "Chờ TH";
+                        } else if ("IN_PROGRESS".equals(rawStatus)) {
+                            statusLabel = "Đang TH";
+                        } else if ("COMPLETED".equals(rawStatus)) {
+                            statusLabel = "Hoàn thành";
+                        } else if ("OVERDUE".equals(rawStatus)) {
+                            statusLabel = "Quá hạn";
+                        } else if ("CANCELLED".equals(rawStatus)) {
+                            statusLabel = "Hủy";
+                        } else if ("REJECTED".equals(rawStatus)) {
+                            statusLabel = "Từ chối";
+                        }
+
+                        // Kiểu lịch (Periodic vs Predictive)
+                        String kind = "HOURS".equals(item.frequencyUnit) ? "Dự báo (giờ)" : "Định kỳ";
+
+                        // Checklist Template Name
+                        String checklistName = (item.checklistTemplateName != null && !item.checklistTemplateName.isEmpty())
+                                ? item.checklistTemplateName
+                                : "Chưa gắn template";
+
+                        // Hạn tiếp theo / Trạng thái hiệu lực
+                        String nextDueText = "";
+                        if ("DRAFT".equals(rawStatus) || "PENDING_APPROVAL".equals(rawStatus) || "REJECTED".equals(rawStatus)) {
+                            nextDueText = "Chưa hiệu lực";
+                        } else if ("HOURS".equals(item.frequencyUnit)) {
+                            nextDueText = "Theo giờ chạy";
+                        } else {
+                            nextDueText = safe(item.nextDueDate);
+                        }
+
+                        // Ngày thực hiện cuối
+                        String lastExec = (item.lastExecutedDate != null && !item.lastExecutedDate.isEmpty())
+                                ? item.lastExecutedDate
+                                : "Chưa TH";
+
+                        String detailText = "Kiểu: " + kind + " | Chu kỳ: " + freq + "\n"
+                                + "Checklist: " + checklistName + "\n"
+                                + "Hạn tiếp theo: " + nextDueText + " | Lần cuối: " + lastExec;
+                        
+                        rows.add(new ListRow(
+                                item.scheduleId,
+                                MODULE_SCHEDULES,
+                                safe(item.scheduleName),
+                                joinNonEmpty(item.assetName, item.locationName),
+                                statusLabel,
+                                detailText
+                        ));
+                    }
+                    adapter.update(rows);
+                    recyclerView.scrollToPosition(0);
+                    textEmpty.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+                    updatePaginationControls(data.total);
+                } else {
+                    showEmpty();
+                    updatePaginationControls(0);
+                }
+                setLoading(false);
+            }
+
+            @Override
+            public void onFailure(Call<ApiEnvelope<PaginatedPayload<com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem>>> call, Throwable t) {
+                showEmpty();
+                updatePaginationControls(0);
+                setLoading(false);
+            }
+        });
+    }
+
+    private void updatePaginationControls(int totalCount) {
+        int totalPages = (int) Math.ceil((double) totalCount / PAGE_SIZE);
+        if (totalPages < 1) totalPages = 1;
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        textPageIndicator.setText("Trang " + currentPage + " / " + totalPages);
+        buttonPrevPage.setEnabled(currentPage > 1);
+        buttonNextPage.setEnabled(currentPage < totalPages);
+
+        if (totalPages > 1) {
+            layoutPagination.setVisibility(View.VISIBLE);
+        } else {
+            layoutPagination.setVisibility(View.GONE);
+        }
     }
 
     private void setLoading(boolean loading) {
@@ -339,24 +547,24 @@ public class ModuleListActivity extends AppCompatActivity {
         if ("--".equals(a) && "--".equals(b)) return "--";
         if ("--".equals(a)) return b;
         if ("--".equals(b)) return a;
-        return a + " • " + b;
+        return a + " | " + b;
     }
 
     private void openDetail(ListRow row) {
         if (MODULE_ASSETS.equals(row.kind)) {
-            android.content.Intent intent = new android.content.Intent(this, AssetDetailActivity.class);
+            Intent intent = new Intent(this, AssetDetailActivity.class);
             intent.putExtra(AssetDetailActivity.EXTRA_ASSET_ID, (int) row.id);
             startActivity(intent);
             return;
         }
         if (MODULE_CHECKLISTS.equals(row.kind)) {
-            android.content.Intent intent = new android.content.Intent(this, ChecklistDetailActivity.class);
+            Intent intent = new Intent(this, ChecklistDetailActivity.class);
             intent.putExtra(ChecklistDetailActivity.EXTRA_CHECKLIST_ID, (int) row.id);
             startActivity(intent);
             return;
         }
         if (MODULE_WORK_ORDERS.equals(row.kind)) {
-            android.content.Intent intent = new android.content.Intent(this, WorkOrderDetailActivity.class);
+            Intent intent = new Intent(this, WorkOrderDetailActivity.class);
             intent.putExtra("extra_wo_id", (int) row.id);
             startActivity(intent);
         }

@@ -6,6 +6,9 @@ public class ChecklistResultItem {
     @SerializedName("checklistId")
     public int checklistId;
 
+    @SerializedName("templateId")
+    public int templateId;
+
     @SerializedName("assetId")
     public int assetId;
 

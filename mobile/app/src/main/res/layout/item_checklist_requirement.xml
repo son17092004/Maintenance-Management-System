@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    app:strokeColor="#CCFBF1"
+    app:strokeWidth="1dp"
+    app:cardBackgroundColor="#F0FDFA">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/textTemplateName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#115E59"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:text="Tên template checklist" />
+
+            <TextView
+                android:id="@+id/textStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:background="@drawable/bg_status_badge"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:text="Chưa làm" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textDueDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#14B8A6"
+            android:textSize="12sp"
+            android:text="Hạn: --" />
+
+        <LinearLayout
+            android:id="@+id/layoutActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
+            android:gravity="end"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonExecute"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Thực hiện checklist mẫu này"
+                android:textColor="#0F766E"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonViewResult"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Xem bản đã nộp"
+                android:textColor="#6D28D9"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -14,6 +14,8 @@ import com.kasiz.warehousemobileapp.model.HealthInfo;
 import com.kasiz.warehousemobileapp.model.LoginRequest;
 import com.kasiz.warehousemobileapp.model.LocationItem;
 import com.kasiz.warehousemobileapp.model.PaginatedPayload;
+import com.kasiz.warehousemobileapp.model.MaintenanceScheduleItem;
+import com.kasiz.warehousemobileapp.model.MeProfile;
 import com.kasiz.warehousemobileapp.model.NotificationsPayload;
 import com.kasiz.warehousemobileapp.model.WorkOrderItem;
 
@@ -130,6 +132,13 @@ public interface ApiService {
     @GET("work-orders/{id}")
     Call<ApiEnvelope<WorkOrderItem>> workOrderById(@Path("id") int id);
 
+    @GET("maintenance-schedules")
+    Call<ApiEnvelope<PaginatedPayload<MaintenanceScheduleItem>>> maintenanceSchedules(
+            @Query("limit") int limit,
+            @Query("offset") int offset,
+            @Query("isActive") String isActive
+    );
+
     @GET("approvals/history/{resourceType}/{resourceId}")
     Call<ApiEnvelope<com.kasiz.warehousemobileapp.model.ApprovalHistoryPayload>> approvalHistory(
             @Path("resourceType") String resourceType,
@@ -138,6 +147,9 @@ public interface ApiService {
 
     @PATCH("work-orders/{id}/status")
     Call<ApiEnvelope<WorkOrderItem>> changeWorkOrderStatus(@Path("id") int id, @Body JsonObject body);
+
+    @PATCH("work-orders/{id}/power-state")
+    Call<ApiEnvelope<WorkOrderItem>> setPowerState(@Path("id") int id, @Body JsonObject body);
 
     @PATCH("work-orders/{id}/closure-notes")
     Call<ApiEnvelope<WorkOrderItem>> saveWorkOrderClosureNotesDraft(@Path("id") int id, @Body JsonObject body);
