@@ -30,6 +30,7 @@ public final class PersistentCookieJar implements CookieJar {
         this.preferences = context.getApplicationContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
+    // luu cookie khi server gui ve
     @Override
     public synchronized void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
         Map<String, StoredCookie> stored = readAll();
@@ -45,17 +46,18 @@ public final class PersistentCookieJar implements CookieJar {
         writeAll(stored);
     }
 
+    //
     @Override
     public synchronized List<Cookie> loadForRequest(HttpUrl url) {
         Map<String, StoredCookie> stored = readAll();
         long now = System.currentTimeMillis();
         List<Cookie> result = new ArrayList<>();
         boolean changed = false;
-
+        //duyet toan bo cookie
         for (Map.Entry<String, StoredCookie> entry : stored.entrySet()) {
             StoredCookie data = entry.getValue();
             if (data == null) continue;
-            Cookie cookie = data.toCookie(url);
+            Cookie cookie = data.toCookie(url); //chuyen storedCookie thanh cookie cua okhttp
             if (cookie.expiresAt() < now) {
                 changed = true;
                 continue;
@@ -81,20 +83,25 @@ public final class PersistentCookieJar implements CookieJar {
         preferences.edit().remove(KEY_COOKIES).apply();
     }
 
+
+    //doc cookie tu shared preferences
     private Map<String, StoredCookie> readAll() {
         String json = preferences.getString(KEY_COOKIES, "{}");
         Map<String, StoredCookie> stored = gson.fromJson(json, MAP_TYPE);
         return stored == null ? new HashMap<>() : stored;
     }
 
+    //ghi de cookie vao shared preferences
     private void writeAll(Map<String, StoredCookie> cookies) {
         preferences.edit().putString(KEY_COOKIES, gson.toJson(cookies, MAP_TYPE)).apply();
     }
 
+    //sinh khoa duy nhat, tranh trung ten cookie
     private String key(Cookie cookie) {
         return cookie.name() + "|" + cookie.domain() + "|" + cookie.path();
     }
 
+    //dto de luu xuong JSON
     private static final class StoredCookie {
         String name;
         String value;
@@ -105,6 +112,7 @@ public final class PersistentCookieJar implements CookieJar {
         boolean httpOnly;
         boolean hostOnly;
 
+        //chuyen cookie thanh storedCookie
         static StoredCookie from(Cookie cookie) {
             StoredCookie stored = new StoredCookie();
             stored.name = cookie.name();
@@ -118,6 +126,7 @@ public final class PersistentCookieJar implements CookieJar {
             return stored;
         }
 
+        //chuyen storedCookie thanh cookie cua okhttp
         Cookie toCookie(HttpUrl url) {
             Cookie.Builder builder = new Cookie.Builder()
                     .name(name)

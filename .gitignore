@@ -21,3 +21,5 @@ Thumbs.db
 
 # Uploads (runtime)
 server/uploads/
+phao/*
+phao

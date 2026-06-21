@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.kasiz.warehousemobileapp.model.ApiEnvelope;
 import com.kasiz.warehousemobileapp.model.WorkOrderItem;
@@ -564,7 +565,8 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
                     Toast.makeText(WorkOrderDetailActivity.this, "Đã cập nhật trạng thái", Toast.LENGTH_SHORT).show();
                     loadDetail();
                 } else {
-                    Toast.makeText(WorkOrderDetailActivity.this, "Cập nhật trạng thái thất bại", Toast.LENGTH_SHORT).show();
+                    String errorMsg = getErrorMessage(response, "Cập nhật trạng thái thất bại");
+                    Toast.makeText(WorkOrderDetailActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -648,7 +650,8 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
                     Toast.makeText(WorkOrderDetailActivity.this, "Đã nộp kết quả công việc. Chờ nghiệm thu.", Toast.LENGTH_LONG).show();
                     loadDetail();
                 } else {
-                    Toast.makeText(WorkOrderDetailActivity.this, "Thao tác thất bại", Toast.LENGTH_SHORT).show();
+                    String errorMsg = getErrorMessage(response, "Thao tác thất bại");
+                    Toast.makeText(WorkOrderDetailActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -1003,7 +1006,8 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
                     Toast.makeText(WorkOrderDetailActivity.this, "Đã bắt đầu công việc", Toast.LENGTH_SHORT).show();
                     loadDetail();
                 } else {
-                    Toast.makeText(WorkOrderDetailActivity.this, "Bắt đầu công việc thất bại", Toast.LENGTH_SHORT).show();
+                    String errorMsg = getErrorMessage(response, "Bắt đầu công việc thất bại");
+                    Toast.makeText(WorkOrderDetailActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -1031,7 +1035,8 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
                     Toast.makeText(WorkOrderDetailActivity.this, "Đã cập nhật trạng thái nguồn máy", Toast.LENGTH_SHORT).show();
                     loadDetail();
                 } else {
-                    Toast.makeText(WorkOrderDetailActivity.this, "Cập nhật nguồn máy thất bại", Toast.LENGTH_SHORT).show();
+                    String errorMsg = getErrorMessage(response, "Cập nhật nguồn máy thất bại");
+                    Toast.makeText(WorkOrderDetailActivity.this, errorMsg, Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -1041,5 +1046,20 @@ public class WorkOrderDetailActivity extends AppCompatActivity {
                 Toast.makeText(WorkOrderDetailActivity.this, "Lỗi kết nối", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private String getErrorMessage(Response<?> response, String defaultMsg) {
+        try {
+            if (response != null && response.errorBody() != null) {
+                String errorJson = response.errorBody().string();
+                ApiEnvelope<?> envelope = new Gson().fromJson(errorJson, ApiEnvelope.class);
+                if (envelope != null && envelope.message != null && !envelope.message.trim().isEmpty()) {
+                    return envelope.message;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return defaultMsg;
     }
 }

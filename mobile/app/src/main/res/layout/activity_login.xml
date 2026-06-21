@@ -19,7 +19,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Warehouse Mobile"
+                android:text="XMSG Maintenance App"
                 android:textColor="@android:color/white"
                 android:textSize="28sp"
                 android:textStyle="bold" />
@@ -30,8 +30,8 @@
                 android:layout_height="32dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:src="@android:drawable/ic_menu_preferences"
                 android:contentDescription="Cài đặt kết nối"
+                android:src="@android:drawable/ic_menu_preferences"
                 app:tint="@android:color/white" />
         </RelativeLayout>
 
@@ -39,7 +39,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Bản tối giản để demo đồ án"
+            android:text="Nếu bạn chưa có tài khoản, vui lòng liên hệ ADMIN"
             android:textColor="#DDE7F3"
             android:textSize="14sp" />
 

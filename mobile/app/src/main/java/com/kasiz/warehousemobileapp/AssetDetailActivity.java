@@ -45,10 +45,21 @@ public class AssetDetailActivity extends AppCompatActivity {
 
     private TextView textName;
     private TextView textStatus;
-    private TextView textMeta;
     private TextView textDescription;
     private TextView textCount;
     private TextView textEmptyPhotos;
+    private TextView textModel;
+    private TextView textManufacturer;
+    private TextView textSerialNumber;
+    private TextView textYearOfManufacture;
+    private TextView textTechnicalSpecs;
+    private TextView textLocation;
+    private TextView textProductionLine;
+    private TextView textAssetType;
+    private TextView textPurchaseDate;
+    private TextView textCommissionDate;
+    private TextView textWarrantyDate;
+    private TextView textDecommissionDate;
     private ProgressBar progressBar;
     private AssetPhotoAdapter adapter;
     private Button buttonQr;
@@ -67,10 +78,21 @@ public class AssetDetailActivity extends AppCompatActivity {
         assetId = getIntent().getIntExtra(EXTRA_ASSET_ID, 0);
         textName = findViewById(R.id.textName);
         textStatus = findViewById(R.id.textStatus);
-        textMeta = findViewById(R.id.textMeta);
         textDescription = findViewById(R.id.textDescription);
         textCount = findViewById(R.id.textCount);
         textEmptyPhotos = findViewById(R.id.textEmptyPhotos);
+        textModel = findViewById(R.id.textModel);
+        textManufacturer = findViewById(R.id.textManufacturer);
+        textSerialNumber = findViewById(R.id.textSerialNumber);
+        textYearOfManufacture = findViewById(R.id.textYearOfManufacture);
+        textTechnicalSpecs = findViewById(R.id.textTechnicalSpecs);
+        textLocation = findViewById(R.id.textLocation);
+        textProductionLine = findViewById(R.id.textProductionLine);
+        textAssetType = findViewById(R.id.textAssetType);
+        textPurchaseDate = findViewById(R.id.textPurchaseDate);
+        textCommissionDate = findViewById(R.id.textCommissionDate);
+        textWarrantyDate = findViewById(R.id.textWarrantyDate);
+        textDecommissionDate = findViewById(R.id.textDecommissionDate);
         progressBar = findViewById(R.id.progressBar);
         Button buttonRefresh = findViewById(R.id.buttonRefresh);
         buttonQr = findViewById(R.id.buttonQr);
@@ -108,9 +130,22 @@ public class AssetDetailActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null && response.body().success && response.body().data != null) {
                     AssetItem asset = response.body().data;
                     textName.setText(safe(asset.assetName));
-                    textStatus.setText(safe(asset.status));
-                    textMeta.setText(join(asset.assetTypeName, asset.productionLineName, asset.locationName, asset.serialNumber, asset.model));
+                    textStatus.setText(getStatusLabel(asset.status));
+                    textStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(getStatusColor(asset.status)));
                     textDescription.setText(safe(asset.description));
+
+                    textModel.setText(safe(asset.model));
+                    textManufacturer.setText(safe(asset.manufacturer));
+                    textSerialNumber.setText(safe(asset.serialNumber));
+                    textYearOfManufacture.setText(asset.yearOfManufacture != null ? String.valueOf(asset.yearOfManufacture) : "--");
+                    textTechnicalSpecs.setText(safe(asset.technicalSpecs));
+                    textLocation.setText(safe(asset.locationName));
+                    textProductionLine.setText(safe(asset.productionLineName));
+                    textAssetType.setText(safe(asset.assetTypeName));
+                    textPurchaseDate.setText(safe(asset.purchaseDate));
+                    textCommissionDate.setText(safe(asset.commissionDate));
+                    textWarrantyDate.setText(safe(asset.warrantyDate));
+                    textDecommissionDate.setText(safe(asset.decommissionDate));
 
                     boolean canUpdate = SessionManager.getInstance(AssetDetailActivity.this).canUpdateAssets();
                     boolean canDelete = SessionManager.getInstance(AssetDetailActivity.this).canDeleteAssets();
@@ -442,6 +477,26 @@ public class AssetDetailActivity extends AppCompatActivity {
 
     private String safe(String value) {
         return value == null || value.trim().isEmpty() ? "--" : value;
+    }
+
+    private String getStatusLabel(String status) {
+        if ("AVAILABLE".equals(status)) return "Hoạt động bình thường";
+        if ("MONITORING".equals(status)) return "Đang giám sát";
+        if ("CAUTION".equals(status)) return "Cần chú ý";
+        if ("MAINTENANCE".equals(status)) return "Đang bảo trì";
+        if ("BROKEN".equals(status)) return "Hỏng hóc";
+        if ("DECOMMISSIONED".equals(status)) return "Ngưng hoạt động";
+        return safe(status);
+    }
+
+    private int getStatusColor(String status) {
+        if ("AVAILABLE".equals(status)) return 0xFF10B981; // Green
+        if ("MONITORING".equals(status)) return 0xFF3B82F6; // Blue
+        if ("CAUTION".equals(status)) return 0xFFF59E0B; // Orange/Amber
+        if ("MAINTENANCE".equals(status)) return 0xFF8B5CF6; // Purple
+        if ("BROKEN".equals(status)) return 0xFFEF4444; // Red
+        if ("DECOMMISSIONED".equals(status)) return 0xFF6B7280; // Gray
+        return 0xFF6B7280;
     }
 
     private String join(String... values) {

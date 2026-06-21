@@ -8,11 +8,13 @@ import com.kasiz.warehousemobileapp.storage.SessionManager;
 import java.io.IOException;
 import java.util.List;
 
+import okhttp3.Authenticator;
 import okhttp3.Cookie;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.Route;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -35,6 +37,7 @@ public final class ApiClient {
         if (cookieJar == null) {
             cookieJar = new PersistentCookieJar(context);
         }
+        //neu app moi mo thi tao moi service
         if (service == null || !baseUrl.equals(currentBaseUrl)) {
             currentBaseUrl = baseUrl;
 
@@ -42,15 +45,15 @@ public final class ApiClient {
             logger.setLevel(HttpLoggingInterceptor.Level.BODY);
 
             OkHttpClient client = new OkHttpClient.Builder()
-                    .cookieJar(cookieJar)
-                    .addInterceptor(logger)
+                    .cookieJar(cookieJar) //gan cookie jar
+                    .addInterceptor(logger) //Log toàn bộ request/response de debug
                     .addInterceptor(new Interceptor() {
                         @Override
                         public Response intercept(Chain chain) throws IOException {
                             Request original = chain.request();
-                            List<Cookie> cookies = cookieJar.loadForRequest(original.url());
+                            List<Cookie> cookies = cookieJar.loadForRequest(original.url()); //lay toan bo cookie
                             if (!cookies.isEmpty()) {
-                                StringBuilder sb = new StringBuilder();
+                                StringBuilder sb = new StringBuilder(); //dung de ghep cookie
                                 for (int i = 0; i < cookies.size(); i++) {
                                     if (i > 0) {
                                         sb.append("; ");
@@ -58,11 +61,54 @@ public final class ApiClient {
                                     sb.append(cookies.get(i).name()).append("=").append(cookies.get(i).value());
                                 }
                                 Request newRequest = original.newBuilder()
-                                        .header("Cookie", sb.toString())
+                                        .header("Cookie", sb.toString()) //gan cookie vao header, ghi de
                                         .build();
                                 return chain.proceed(newRequest);
                             }
                             return chain.proceed(original);
+                        }
+                    })
+                    .authenticator(new Authenticator() {
+                        @Override
+                        public Request authenticate(Route route, Response response) throws IOException {
+                            if (response.request().url().encodedPath().contains("/auth/refresh")) {
+                                return null;
+                            }
+
+                            if (responseCount(response) >= 3) {
+                                return null;
+                            }
+
+                            synchronized (ApiClient.class) {
+                                Request refreshRequest = new Request.Builder()
+                                        .url(currentBaseUrl + "auth/refresh")
+                                        .post(okhttp3.RequestBody.create("", null))
+                                        .build();
+
+                                OkHttpClient refreshClient = new OkHttpClient.Builder()
+                                        .cookieJar(cookieJar)
+                                        .build();
+
+                                try (Response refreshResponse = refreshClient.newCall(refreshRequest).execute()) {
+                                    if (refreshResponse.isSuccessful()) {
+                                        List<Cookie> cookies = cookieJar.loadForRequest(response.request().url());
+                                        if (!cookies.isEmpty()) {
+                                            StringBuilder sb = new StringBuilder();
+                                            for (int i = 0; i < cookies.size(); i++) {
+                                                if (i > 0) {
+                                                    sb.append("; ");
+                                                }
+                                                sb.append(cookies.get(i).name()).append("=").append(cookies.get(i).value());
+                                            }
+                                            return response.request().newBuilder()
+                                                    .header("Cookie", sb.toString())
+                                                    .build();
+                                        }
+                                        return response.request();
+                                    }
+                                }
+                            }
+                            return null;
                         }
                     })
                     .build();
@@ -87,5 +133,13 @@ public final class ApiClient {
     public static synchronized void reset() {
         service = null;
         currentBaseUrl = null;
+    }
+
+    private static int responseCount(Response response) {
+        int result = 1;
+        while ((response = response.priorResponse()) != null) {
+            result++;
+        }
+        return result;
     }
 }

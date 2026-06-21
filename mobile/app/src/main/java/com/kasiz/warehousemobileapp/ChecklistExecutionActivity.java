@@ -58,6 +58,7 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
     private Integer woId;
 
     private TextView textAssetName, textAssetDetails, textWoContext, textTemplateName, textMinReadingHint, textEvidencePhotoName;
+    private TextInputLayout layoutReadingValue;
     private TextInputEditText editReadingValue, editNotes;
     private RadioGroup groupOverallStatus;
     private RadioButton radioOk, radioWarning, radioNg;
@@ -113,6 +114,7 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
         textMinReadingHint = findViewById(R.id.textMinReadingHint);
         textEvidencePhotoName = findViewById(R.id.textEvidencePhotoName);
 
+        layoutReadingValue = findViewById(R.id.layoutReadingValue);
         editReadingValue = findViewById(R.id.editReadingValue);
         editNotes = findViewById(R.id.editNotes);
 
@@ -167,8 +169,18 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
         });
     }
 
+    private JsonObject getAsJsonObjectSafe(JsonObject obj, String prop) {
+        if (obj == null || !obj.has(prop) || obj.get(prop).isJsonNull() || !obj.get(prop).isJsonObject()) return null;
+        return obj.getAsJsonObject(prop);
+    }
+
+    private JsonArray getAsJsonArraySafe(JsonObject obj, String prop) {
+        if (obj == null || !obj.has(prop) || obj.get(prop).isJsonNull() || !obj.get(prop).isJsonArray()) return null;
+        return obj.getAsJsonArray(prop);
+    }
+
     private void renderQrInfo(JsonObject data) {
-        JsonObject asset = data.getAsJsonObject("asset");
+        JsonObject asset = getAsJsonObjectSafe(data, "asset");
         if (asset != null) {
             textAssetName.setText(getStr(asset, "assetName"));
             textAssetDetails.setText(getStr(asset, "assetTypeName") + " • " + getStr(asset, "locationName"));
@@ -179,36 +191,42 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
             textWoContext.setText("Gắn với Phiếu việc: WO-" + String.format("%04d", woId));
         }
 
-        JsonObject runtimeCounter = data.getAsJsonObject("runtimeCounter");
+        JsonObject runtimeCounter = getAsJsonObjectSafe(data, "runtimeCounter");
         if (runtimeCounter != null && runtimeCounter.has("lastReadingValue")) {
             lastReadingValue = runtimeCounter.get("lastReadingValue").getAsDouble();
             textMinReadingHint.setVisibility(View.VISIBLE);
             textMinReadingHint.setText("Số giờ chạy tối thiểu: " + lastReadingValue + " giờ (bằng hoặc lớn hơn số giờ đã lưu)");
-            editReadingValue.setHint("Tối thiểu " + lastReadingValue + " giờ");
+            if (layoutReadingValue != null) {
+                layoutReadingValue.setPlaceholderText("Tối thiểu " + lastReadingValue + " giờ");
+            }
+            editReadingValue.setText(String.valueOf(lastReadingValue));
         }
 
-        JsonArray allTemplates = data.getAsJsonArray("checklistTemplates");
+        JsonArray allTemplates = getAsJsonArraySafe(data, "checklistTemplates");
         templatesForSubmit = new JsonArray();
         if (allTemplates != null) {
-            JsonObject woChecklist = data.getAsJsonObject("woChecklist");
-            JsonArray openTemplateIds = null;
-            if (woChecklist != null && woChecklist.has("openTemplateIds")) {
-                openTemplateIds = woChecklist.getAsJsonArray("openTemplateIds");
-            }
+            JsonObject woChecklist = getAsJsonObjectSafe(data, "woChecklist");
+            JsonArray openTemplateIds = getAsJsonArraySafe(woChecklist, "openTemplateIds");
             
             if (woId != null && openTemplateIds != null && openTemplateIds.size() > 0) {
                 for (int i = 0; i < allTemplates.size(); i++) {
-                    JsonObject tpl = allTemplates.get(i).getAsJsonObject();
-                    int tplId = tpl.get("templateId").getAsInt();
-                    boolean isOpen = false;
-                    for (int j = 0; j < openTemplateIds.size(); j++) {
-                        if (openTemplateIds.get(j).getAsInt() == tplId) {
-                            isOpen = true;
-                            break;
+                    JsonElement tplEl = allTemplates.get(i);
+                    if (tplEl != null && tplEl.isJsonObject()) {
+                        JsonObject tpl = tplEl.getAsJsonObject();
+                        if (tpl.has("templateId") && !tpl.get("templateId").isJsonNull()) {
+                            int tplId = tpl.get("templateId").getAsInt();
+                            boolean isOpen = false;
+                            for (int j = 0; j < openTemplateIds.size(); j++) {
+                                JsonElement otIdEl = openTemplateIds.get(j);
+                                if (otIdEl != null && !otIdEl.isJsonNull() && otIdEl.getAsInt() == tplId) {
+                                    isOpen = true;
+                                    break;
+                                }
+                            }
+                            if (isOpen) {
+                                templatesForSubmit.add(tpl);
+                            }
                         }
-                    }
-                    if (isOpen) {
-                        templatesForSubmit.add(tpl);
                     }
                 }
             } else {
@@ -222,7 +240,12 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
             
             List<String> templateNames = new ArrayList<>();
             for (int i = 0; i < templatesForSubmit.size(); i++) {
-                templateNames.add(getStr(templatesForSubmit.get(i).getAsJsonObject(), "templateName"));
+                JsonElement el = templatesForSubmit.get(i);
+                if (el != null && el.isJsonObject()) {
+                    templateNames.add(getStr(el.getAsJsonObject(), "templateName"));
+                } else {
+                    templateNames.add("");
+                }
             }
             
             ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, templateNames);
@@ -232,9 +255,13 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
             int selectedIndex = 0;
             if (templateIdFromIntent > 0) {
                 for (int i = 0; i < templatesForSubmit.size(); i++) {
-                    if (templatesForSubmit.get(i).getAsJsonObject().get("templateId").getAsInt() == templateIdFromIntent) {
-                        selectedIndex = i;
-                        break;
+                    JsonElement el = templatesForSubmit.get(i);
+                    if (el != null && el.isJsonObject()) {
+                        JsonObject tpl = el.getAsJsonObject();
+                        if (tpl.has("templateId") && !tpl.get("templateId").isJsonNull() && tpl.get("templateId").getAsInt() == templateIdFromIntent) {
+                            selectedIndex = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -244,11 +271,19 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
             spinnerTemplates.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    JsonObject selected = templatesForSubmit.get(position).getAsJsonObject();
-                    templateId = selected.get("templateId").getAsInt();
-                    if (selected.has("items")) {
-                        templateItems = selected.getAsJsonArray("items");
-                        renderQuestions(templateItems);
+                    JsonElement el = templatesForSubmit.get(position);
+                    if (el != null && el.isJsonObject()) {
+                        JsonObject selected = el.getAsJsonObject();
+                        if (selected.has("templateId") && !selected.get("templateId").isJsonNull()) {
+                            templateId = selected.get("templateId").getAsInt();
+                        }
+                        templateItems = getAsJsonArraySafe(selected, "items");
+                        if (templateItems != null) {
+                            renderQuestions(templateItems);
+                        } else {
+                            templateItems = new JsonArray();
+                            renderQuestions(templateItems);
+                        }
                     }
                 }
 
@@ -258,13 +293,18 @@ public class ChecklistExecutionActivity extends AppCompatActivity {
             });
         } else {
             spinnerTemplates.setVisibility(View.GONE);
-            JsonObject checklistTemplate = data.getAsJsonObject("checklistTemplate");
+            JsonObject checklistTemplate = getAsJsonObjectSafe(data, "checklistTemplate");
             if (checklistTemplate != null) {
-                templateId = checklistTemplate.get("templateId").getAsInt();
+                if (checklistTemplate.has("templateId") && !checklistTemplate.get("templateId").isJsonNull()) {
+                    templateId = checklistTemplate.get("templateId").getAsInt();
+                }
                 textTemplateName.setText("Mẫu: " + getStr(checklistTemplate, "templateName"));
 
-                if (checklistTemplate.has("items")) {
-                    templateItems = checklistTemplate.getAsJsonArray("items");
+                templateItems = getAsJsonArraySafe(checklistTemplate, "items");
+                if (templateItems != null) {
+                    renderQuestions(templateItems);
+                } else {
+                    templateItems = new JsonArray();
                     renderQuestions(templateItems);
                 }
             } else {

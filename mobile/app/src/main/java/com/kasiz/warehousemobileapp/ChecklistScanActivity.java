@@ -150,13 +150,13 @@ public class ChecklistScanActivity extends AppCompatActivity {
         }
 
         JsonObject asset = data.getAsJsonObject("asset");
-        int assetId = asset.get("assetId").getAsInt();
-        String name = asset.has("assetName") ? asset.get("assetName").getAsString() : "";
-        String type = asset.has("assetTypeName") ? asset.get("assetTypeName").getAsString() : "";
-        String location = asset.has("locationName") ? asset.get("locationName").getAsString() : "";
-        String serial = asset.has("serialNumber") ? asset.get("serialNumber").getAsString() : "";
-        String status = asset.has("status") ? asset.get("status").getAsString() : "";
-        String desc = asset.has("description") ? asset.get("description").getAsString() : "";
+        int assetId = asset.has("assetId") && !asset.get("assetId").isJsonNull() ? asset.get("assetId").getAsInt() : 0;
+        String name = getStr(asset, "assetName");
+        String type = getStr(asset, "assetTypeName");
+        String location = getStr(asset, "locationName");
+        String serial = getStr(asset, "serialNumber");
+        String status = getStr(asset, "status");
+        String desc = getStr(asset, "description");
 
         textAssetName.setText(name);
         textAssetMeta.setText(type + " • Vị trí: " + location);
@@ -380,5 +380,10 @@ public class ChecklistScanActivity extends AppCompatActivity {
             intent.putExtra("extra_wo_id", activeWoId);
         }
         startActivity(intent);
+    }
+
+    private String getStr(JsonObject obj, String prop) {
+        if (obj == null || !obj.has(prop) || obj.get(prop).isJsonNull()) return "";
+        return obj.get(prop).getAsString();
     }
 }
